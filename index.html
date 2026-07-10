@@ -1,0 +1,318 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>磁力在线播放·调试版</title>
+    <style>
+        :root {
+            --bg: #0a0a14;
+            --bg-card: #13131f;
+            --text: #e0e0f0;
+            --accent: #7c5cfc;
+            --danger: #ff4d6a;
+            --success: #4ec9b0;
+            --border: #1e1e35;
+        }
+        * { margin:0; padding:0; box-sizing:border-box; }
+        body {
+            background: var(--bg); color: var(--text);
+            font-family: system-ui, -apple-system, sans-serif;
+            min-height: 100vh; display: flex; flex-direction: column; align-items: center; padding: 20px;
+        }
+        .container { width: 100%; max-width: 800px; display: flex; flex-direction: column; gap: 16px; }
+        .card {
+            background: var(--bg-card); border: 1px solid var(--border);
+            border-radius: 16px; padding: 16px;
+        }
+        .input-row { display: flex; gap: 8px; flex-wrap: wrap; }
+        input {
+            flex:1; min-width: 200px; padding: 12px 16px; border-radius: 12px;
+            background: #0d0d1a; border: 1px solid var(--border); color: var(--text);
+            font-size: 0.9rem; outline: none;
+        }
+        button {
+            padding: 12px 20px; border-radius: 12px; font-weight: 600; border: none;
+            cursor: pointer; font-size: 0.9rem; background: var(--accent); color: white;
+            transition: 0.2s; white-space: nowrap;
+        }
+        button:active { transform: scale(0.96); }
+        button:disabled { opacity: 0.4; pointer-events: none; }
+        .btn-stop { background: transparent; border: 1px solid var(--danger); color: var(--danger); }
+        #status { font-size: 0.85rem; color: #aaa; }
+        #status .dot {
+            display: inline-block; width: 8px; height: 8px; border-radius: 50%;
+            margin-right: 6px; background: #666;
+        }
+        .dot.active { background: var(--success); }
+        .dot.error { background: var(--danger); }
+        #debugInfo {
+            background: #111; border-radius: 12px; padding: 12px;
+            font-family: monospace; font-size: 0.75rem; color: #aaa;
+            max-height: 200px; overflow-y: auto; white-space: pre-wrap;
+            word-break: break-all;
+        }
+        .hidden { display: none; }
+        video { width: 100%; max-height: 400px; background: #000; border-radius: 12px; }
+    </style>
+</head>
+<body>
+<div class="container">
+    <h2 style="text-align:center;">🧲 磁力在线播放·调试版</h2>
+    <div class="card">
+        <div class="input-row">
+            <input type="text" id="magnetInput" placeholder="粘贴 magnet:?xt=urn:btih:... 链接" autocomplete="off">
+            <button id="btnParse">🔍 解析播放</button>
+            <button id="btnStop" class="btn-stop hidden">⏹ 停止</button>
+        </div>
+        <div id="status" style="margin-top:10px;">
+            <span class="dot" id="statusDot"></span>
+            <span id="statusText">等待操作...</span>
+        </div>
+    </div>
+
+    <!-- 调试信息面板 -->
+    <div class="card">
+        <strong style="font-size:0.85rem;">📋 调试日志</strong>
+        <div id="debugInfo">⏳ 正在初始化...<br></div>
+    </div>
+
+    <!-- 播放器 -->
+    <div class="card" id="playerCard">
+        <div id="playerContainer">
+            <p style="color:#666; text-align:center;">🎬 视频将在这里播放</p>
+        </div>
+    </div>
+</div>
+
+<!-- 这里尝试加载 WebTorrent，用多个备用 CDN -->
+<script>
+    // 调试日志输出函数
+    function log(msg) {
+        const debugDiv = document.getElementById('debugInfo');
+        if (debugDiv) {
+            const time = new Date().toLocaleTimeString();
+            debugDiv.innerHTML += `[${time}] ${msg}<br>`;
+            debugDiv.scrollTop = debugDiv.scrollHeight;
+        }
+        console.log(msg);
+    }
+
+    log('页面加载完成，开始检测 WebTorrent 库...');
+
+    // 检测 WebTorrent 是否加载成功
+    window.addEventListener('load', function() {
+        if (typeof WebTorrent === 'undefined') {
+            const errMsg = '❌ WebTorrent 库加载失败！请检查网络或更换 CDN。';
+            log(errMsg);
+            alert(errMsg);
+            document.getElementById('statusText').textContent = '库加载失败';
+            document.getElementById('statusDot').className = 'dot error';
+        } else {
+            log('✅ WebTorrent 库加载成功，版本: ' + (WebTorrent.VERSION || '未知'));
+        }
+    });
+</script>
+
+<!-- 主逻辑 -->
+<script>
+    (function() {
+        // 等待 WebTorrent 可用
+        function waitForWebTorrent(callback) {
+            if (typeof WebTorrent !== 'undefined') {
+                callback();
+            } else {
+                const checkInterval = setInterval(() => {
+                    if (typeof WebTorrent !== 'undefined') {
+                        clearInterval(checkInterval);
+                        callback();
+                    }
+                }, 300);
+                // 10秒超时
+                setTimeout(() => {
+                    clearInterval(checkInterval);
+                    if (typeof WebTorrent === 'undefined') {
+                        alert('WebTorrent 加载超时，请刷新页面或更换 CDN。');
+                        log('❌ WebTorrent 加载超时');
+                    }
+                }, 10000);
+            }
+        }
+
+        waitForWebTorrent(() => {
+            log('开始初始化 WebTorrent 客户端...');
+            initApp();
+        });
+
+        function initApp() {
+            const magnetInput = document.getElementById('magnetInput');
+            const btnParse = document.getElementById('btnParse');
+            const btnStop = document.getElementById('btnStop');
+            const statusDot = document.getElementById('statusDot');
+            const statusText = document.getElementById('statusText');
+            const playerContainer = document.getElementById('playerContainer');
+
+            let client = null;
+            let currentTorrent = null;
+            let currentVideo = null;
+
+            function getClient() {
+                if (!client) {
+                    client = new WebTorrent({
+                        tracker: {
+                            announce: [
+                                'wss://tracker.webtorrent.dev',
+                                'wss://tracker.openwebtorrent.com',
+                            ]
+                        },
+                        maxConns: 30,
+                    });
+                    log('WebTorrent 客户端已创建');
+                }
+                return client;
+            }
+
+            function stopAll() {
+                if (currentVideo) {
+                    currentVideo.pause();
+                    currentVideo.removeAttribute('src');
+                    currentVideo.load();
+                    currentVideo.remove();
+                    currentVideo = null;
+                }
+                if (currentTorrent) {
+                    currentTorrent.destroy();
+                    currentTorrent = null;
+                }
+                playerContainer.innerHTML = '<p style="color:#666; text-align:center;">🎬 视频将在这里播放</p>';
+                btnParse.disabled = false;
+                btnStop.classList.add('hidden');
+                statusDot.className = 'dot';
+                statusText.textContent = '已停止';
+                log('已停止当前任务');
+            }
+
+            btnStop.addEventListener('click', stopAll);
+
+            function parseMagnet() {
+                const raw = magnetInput.value.trim();
+                if (!raw) {
+                    alert('请粘贴磁力链接');
+                    log('⚠️ 输入为空');
+                    return;
+                }
+
+                // 提取磁力链接
+                let magnet = raw;
+                if (!raw.startsWith('magnet:')) {
+                    const match = raw.match(/magnet:\?xt=urn:btih:[^\s&]+/i);
+                    if (match) magnet = match[0];
+                    else {
+                        alert('无效的磁力链接格式，请检查。\n需要包含 magnet:?xt=urn:btih:...');
+                        log('❌ 无法从输入中提取磁力链接');
+                        return;
+                    }
+                }
+
+                log('开始解析: ' + magnet.substring(0, 80) + '...');
+                stopAll(); // 先停止之前的任务
+                btnParse.disabled = true;
+                btnStop.classList.remove('hidden');
+                statusDot.className = 'dot active';
+                statusText.textContent = '连接中...';
+
+                const cl = getClient();
+                cl.add(magnet, { announce: [] }, (torrent) => {
+                    currentTorrent = torrent;
+                    log('Torrent 添加成功: ' + (torrent.name || torrent.infoHash));
+                    statusText.textContent = '下载元数据...';
+
+                    torrent.on('metadata', () => {
+                        log('元数据加载完成，文件数: ' + torrent.files.length);
+                        statusText.textContent = '文件列表已就绪';
+                        // 查找第一个视频文件
+                        const videoFile = torrent.files.find(f => {
+                            const ext = f.name.split('.').pop().toLowerCase();
+                            return ['mp4', 'webm', 'mov', 'm4v', 'ogv'].includes(ext);
+                        }) || torrent.files[0];
+
+                        if (videoFile) {
+                            log('自动播放文件: ' + videoFile.name);
+                            playFile(videoFile);
+                        }
+                    });
+
+                    torrent.on('download', () => {
+                        const progress = (torrent.progress * 100).toFixed(1);
+                        statusText.textContent = `下载中 ${progress}% · 节点: ${torrent.numPeers}`;
+                    });
+
+                    torrent.on('done', () => {
+                        log('✅ 下载完成');
+                        statusText.textContent = '下载完成';
+                    });
+
+                    torrent.on('error', (err) => {
+                        log('❌ 错误: ' + err.message);
+                        alert('发生错误: ' + err.message);
+                        stopAll();
+                    });
+                });
+            }
+
+            function playFile(file) {
+                if (currentVideo) {
+                    currentVideo.remove();
+                    currentVideo = null;
+                }
+                playerContainer.innerHTML = '';
+                const video = document.createElement('video');
+                video.controls = true;
+                video.playsInline = true;
+                video.style.width = '100%';
+                video.style.maxHeight = '400px';
+                video.style.background = '#000';
+                playerContainer.appendChild(video);
+                currentVideo = video;
+
+                const blobUrl = file.getBlobURL();
+                video.src = blobUrl;
+                video.play().catch(e => {
+                    log('自动播放失败（正常，需用户手势）: ' + e.message);
+                });
+                log('开始播放: ' + file.name);
+            }
+
+            btnParse.addEventListener('click', parseMagnet);
+            magnetInput.addEventListener('keydown', (e) => {
+                if (e.key === 'Enter') {
+                    e.preventDefault();
+                    parseMagnet();
+                }
+            });
+
+            log('✅ 初始化完成，等待用户输入...');
+        }
+    })();
+</script>
+
+<!-- 备用 CDN 检测：如果主 CDN 加载失败，尝试从备用地址加载 -->
+<script>
+    // 如果 WebTorrent 仍未定义，动态加载备用 CDN
+    (function() {
+        if (typeof WebTorrent !== 'undefined') return;
+        var script = document.createElement('script');
+        script.src = 'https://cdn.bootcdn.net/ajax/libs/webtorrent/2.2.1/webtorrent.min.js';
+        script.onload = function() {
+            console.log('备用 CDN 加载成功');
+            log('✅ 通过备用 CDN 加载 WebTorrent 成功');
+        };
+        script.onerror = function() {
+            console.error('所有 CDN 均加载失败');
+            log('❌ 所有 CDN 尝试均失败，请检查网络或手动下载 webtorrent.min.js 放在同目录下');
+        };
+        document.head.appendChild(script);
+    })();
+</script>
+</body>
+</html>
