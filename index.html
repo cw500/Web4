@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>磁力在线播放器</title>
+<!-- 切换jsdelivr国内加速镜像地址，降低加载失败概率 -->
+<script src="https://cdn.jsdelivr.net/npm/webtorrent@1.9.7/dist/webtorrent.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/dplayer@1.27.1/dist/DPlayer.min.js"></script>
+<style>
+*{margin:0;padding:0;box-sizing:border-box;font-family:system-ui,Microsoft Yahei}
+body{background:#0f172a;color:#eee;padding:20px;max-width:1000px;margin:0 auto}
+.box{background:#1e293b;padding:16px;border-radius:12px;margin-bottom:16px}
+.input-group{display:flex;gap:10px;margin-bottom:12px}
+#magnet{flex:1;padding:12px;border-radius:8px;border:none;background:#334155;color:#fff;outline:none;font-size:14px}
+button{padding:12px 20px;border:none;border-radius:8px;background:#3b82f6;color:#fff;cursor:pointer;font-size:14px}
+button:disabled{background:#475569;cursor:not-allowed}
+#log{height:140px;background:#0f172a;padding:10px;border-radius:8px;overflow:auto;margin:10px 0;color:#94a3b8;font-size:13px;white-space:pre-line}
+#player{border-radius:12px;overflow:hidden;background:#000;min-height:280px}
+</style>
+</head>
+<body>
+<div class="box">
+  <div class="input-group">
+    <input id="magnet" placeholder="粘贴完整磁力链接 magnet:?xt=urn:btih:">
+    <button id="playBtn">解析播放</button>
+  </div>
+  <div id="log"></div>
+  <div id="player"></div>
+</div>
+
+<script>
+// 扩充全网可用WebTracker（仅保留wss/https可浏览器访问节点）
+const TRACKERS = [
+  "wss://tracker.btorrent.xyz",
+  "wss://tracker.openwebtorrent.com",
+  "wss://tracker.fasttrack.win/announce",
+  "wss://tracker.sloppyta.co/announce",
+  "https://tracker.nanoha.org/announce",
+  "https://tracker.lelux.fi/announce",
+  "https://tr.burnaby.ca/announce",
+  "https://tracker.torrent.eu.org/announce"
+];
+let client = null;
+let dp = null;
+const logBox = document.getElementById("log");
+const magnetInput = document.getElementById("magnet");
+const playBtn = document.getElementById("playBtn");
+const playerBox = document.getElementById("player");
+
+// 日志输出函数
+function log(text){
+  const time = new Date().toLocaleTimeString();
+  logBox.innerHTML += `${time} > ${text}\n`;
+  logBox.scrollTop = logBox.scrollHeight;
+}
+// 销毁旧播放器实例
+function destroyPlayer(){
+  if(dp) dp.destroy();
+  dp = null;
+  playerBox.innerHTML = "";
+}
+
+// 页面加载完成自动初始化，打印就绪状态
+window.onload = function(){
+  setTimeout(()=>{
+    if(typeof WebTorrent !== 'undefined'){
+      client = new WebTorrent({tracker:{announce:TRACKERS},dht:true,webSeeds:true});
+      log("✅ WebTorrent引擎初始化完成，可以解析磁力");
+    }else{
+      log("❌ WebTorrent脚本加载失败！解决方案：1.刷新页面 2.切换手机5G热点网络 3.复制文件用外部浏览器打开");
+      playBtn.disabled = true;
+    }
+  },800);
+}
+
+// 按钮点击强制先打印日志，确认事件被触发
+playBtn.onclick = function(){
+  log("👉 检测到点击操作，开始校验磁力格式");
+  const magnet = magnetInput.value.trim();
+  if(!magnet.startsWith("magnet:?xt=urn:btih:")){
+    log("❌ 磁力链接不完整，请粘贴完整以magnet:开头的链接");
+    return;
+  }
+  if(!client){
+    log("❌ 引擎未初始化，无法执行解析");
+    return;
+  }
+  playBtn.disabled = true;
+  destroyPlayer();
+  log("▶ 正在请求磁力元数据，DHT网络+Tracker节点并行搜寻资源...");
+  const torrent = client.add(magnet,{announce:TRACKERS});
+
+  torrent.on("metadata",()=>{
+    log(`✅ 获取资源信息成功，文件总数：${torrent.files.length}`);
+    const videoSuffix = ["mp4","mkv","mov","avi","m4v","flv","webm"];
+    const videoFile = torrent.files.find(item=>videoSuffix.includes(item.name.split('.').pop().toLowerCase()));
+    if(!videoFile){
+      log("❌ 未找到可播放的视频文件");
+      playBtn.disabled = false;
+      return;
+    }
+    log(`🎬 准备播放文件：${videoFile.name}`);
+    const stream = videoFile.createReadStream();
+    const mediaSource = new MediaSource();
+    const sourceBuffer = mediaSource.addSourceBuffer('video/mp4; codecs="avc1.42C01E,mp4a.40.2"');
+    mediaSource.addEventListener('sourceopen',()=>{
+      stream.on('data',buf=>sourceBuffer.appendBuffer(buf));
+      stream.on('end',()=>mediaSource.endOfStream());
+    });
+    class MediaWrap{constructor(ms){this.ms=ms}get srcObject(){return this.ms}}
+    dp = new DPlayer({container:playerBox,video:{url:new MediaWrap(mediaSource)},autoplay:true,volume:0.8,playbackRate:[0.5,1,1.25,1.5,2]});
+  });
+
+  torrent.on("download",()=>{
+    const speed = (torrent.downloadSpeed/1024/1024).toFixed(2);
+    const peerCount = torrent.numPeers;
+    log(`📥 下载速度：${speed} MB/s | 已连接节点数：${peerCount}`);
+  });
+  torrent.on("done",()=>log("✅ 全部文件缓冲完成，可拖动进度条离线播放"));
+  torrent.on("error",err=>{log("❌ 解析失败："+err.message);playBtn.disabled=false;});
+  torrent.on("ready",()=>playBtn.disabled=false);
+};
+</script>
+</body>
+</html>
