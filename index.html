@@ -1,0 +1,723 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+    <title>📊 实时加密货币行情</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            background: #0b0e1a;
+            color: #e5e7eb;
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            padding: 16px;
+            min-height: 100vh;
+        }
+        .header {
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            justify-content: space-between;
+            gap: 12px;
+            padding: 12px 0 20px 0;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+            margin-bottom: 20px;
+        }
+        .header h1 {
+            font-size: 1.3rem;
+            font-weight: 700;
+            background: linear-gradient(135deg, #f7931a, #8b5cf6);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+        .header .status {
+            font-size: 0.75rem;
+            color: rgba(255, 255, 255, 0.35);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .header .status .dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: #f59e0b;
+            display: inline-block;
+            animation: pulse-dot 1.8s ease-in-out infinite;
+        }
+        @keyframes pulse-dot {
+            0%, 100% { opacity: 1; transform: scale(1); }
+            50% { opacity: 0.3; transform: scale(0.7); }
+        }
+        .toolbar {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin-bottom: 18px;
+            align-items: center;
+        }
+        .toolbar input[type="text"] {
+            flex: 1;
+            min-width: 140px;
+            padding: 10px 16px;
+            border-radius: 12px;
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            background: rgba(255, 255, 255, 0.04);
+            color: #e5e7eb;
+            font-size: 0.9rem;
+            outline: none;
+            transition: border 0.2s;
+        }
+        .toolbar input[type="text"]:focus {
+            border-color: rgba(139, 92, 246, 0.4);
+        }
+        .toolbar input[type="text"]::placeholder {
+            color: rgba(255, 255, 255, 0.25);
+        }
+        .toolbar .badge {
+            font-size: 0.7rem;
+            padding: 4px 12px;
+            border-radius: 100px;
+            background: rgba(255, 255, 255, 0.05);
+            color: rgba(255, 255, 255, 0.35);
+            border: 1px solid rgba(255, 255, 255, 0.04);
+        }
+        .toolbar .btn {
+            padding: 6px 14px;
+            border-radius: 100px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            background: rgba(255, 255, 255, 0.04);
+            color: #e5e7eb;
+            cursor: pointer;
+            font-size: 0.75rem;
+            transition: background 0.2s;
+        }
+        .toolbar .btn:hover {
+            background: rgba(255, 255, 255, 0.08);
+        }
+        .table-wrap {
+            background: rgba(255, 255, 255, 0.02);
+            border-radius: 16px;
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            overflow-x: auto;
+            -webkit-overflow-scrolling: touch;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.85rem;
+            min-width: 640px;
+        }
+        thead {
+            background: rgba(255, 255, 255, 0.03);
+        }
+        th {
+            text-align: left;
+            padding: 14px 16px;
+            font-weight: 500;
+            color: rgba(255, 255, 255, 0.4);
+            font-size: 0.7rem;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            cursor: pointer;
+            user-select: none;
+            white-space: nowrap;
+            transition: color 0.2s;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+        }
+        th:hover {
+            color: rgba(255, 255, 255, 0.7);
+        }
+        td {
+            padding: 12px 16px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.03);
+            white-space: nowrap;
+        }
+        tr:hover td {
+            background: rgba(255, 255, 255, 0.03);
+        }
+        .coin-name {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .coin-name .symbol {
+            font-weight: 600;
+            color: #fff;
+        }
+        .coin-name .fullname {
+            color: rgba(255, 255, 255, 0.3);
+            font-size: 0.75rem;
+        }
+        .coin-icon {
+            width: 28px;
+            height: 28px;
+            border-radius: 50%;
+            background: rgba(255, 255, 255, 0.06);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.7rem;
+            font-weight: 700;
+            color: rgba(255, 255, 255, 0.5);
+            flex-shrink: 0;
+        }
+        .price {
+            font-weight: 600;
+            font-variant-numeric: tabular-nums;
+        }
+        .change {
+            font-weight: 600;
+            font-variant-numeric: tabular-nums;
+            padding: 2px 10px;
+            border-radius: 6px;
+            display: inline-block;
+            min-width: 64px;
+            text-align: center;
+        }
+        .change.positive {
+            color: #22c55e;
+            background: rgba(34, 197, 94, 0.1);
+        }
+        .change.negative {
+            color: #ef4444;
+            background: rgba(239, 68, 68, 0.1);
+        }
+        .change.neutral {
+            color: rgba(255, 255, 255, 0.3);
+            background: rgba(255, 255, 255, 0.04);
+        }
+        .market-cap,
+        .volume {
+            color: rgba(255, 255, 255, 0.5);
+            font-variant-numeric: tabular-nums;
+        }
+        .loading,
+        .error {
+            text-align: center;
+            padding: 60px 20px;
+            color: rgba(255, 255, 255, 0.2);
+        }
+        .loading .spinner {
+            width: 32px;
+            height: 32px;
+            border: 3px solid rgba(255, 255, 255, 0.05);
+            border-top-color: #8b5cf6;
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+            margin: 0 auto 16px;
+        }
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+        .error {
+            color: #f87171;
+        }
+        .error .retry-btn,
+        .error .switch-btn,
+        .error .mock-btn {
+            margin-top: 12px;
+            padding: 8px 20px;
+            border-radius: 100px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            background: transparent;
+            color: #e5e7eb;
+            cursor: pointer;
+            font-size: 0.85rem;
+            transition: background 0.2s;
+            margin: 6px;
+        }
+        .error .retry-btn:hover,
+        .error .switch-btn:hover,
+        .error .mock-btn:hover {
+            background: rgba(255, 255, 255, 0.05);
+        }
+        .error .error-detail {
+            font-size: 0.8rem;
+            color: rgba(255, 255, 255, 0.4);
+            margin-top: 8px;
+            word-break: break-all;
+        }
+        .loading .retry-text {
+            font-size: 0.8rem;
+            color: rgba(255, 255, 255, 0.3);
+            margin-top: 8px;
+        }
+        @media (max-width: 600px) {
+            body { padding: 10px; }
+            .header h1 { font-size: 1.1rem; }
+            table { font-size: 0.75rem; min-width: 480px; }
+            th, td { padding: 10px 12px; }
+            .coin-name .fullname { display: none; }
+            .change { min-width: 50px; padding: 2px 6px; font-size: 0.7rem; }
+            .coin-icon { width: 22px; height: 22px; font-size: 0.55rem; }
+        }
+        @media (max-width: 400px) {
+            table { font-size: 0.65rem; min-width: 360px; }
+            th, td { padding: 8px 8px; }
+            .market-cap,
+            .volume { display: none; }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="header">
+        <h1>📊 实时行情</h1>
+        <div class="status">
+            <span class="dot" id="statusDot"></span>
+            <span id="updateTime">加载中...</span>
+        </div>
+    </div>
+
+    <div class="toolbar">
+        <input type="text" id="searchInput" placeholder="🔍 搜索币种名称或符号..." />
+        <span class="badge" id="countBadge">加载中</span>
+        <button class="btn" id="refreshBtn">🔄 刷新</button>
+        <button class="btn" id="switchSourceBtn">切换数据源</button>
+        <button class="btn" id="mockBtn">📋 模拟数据</button>
+    </div>
+
+    <div class="table-wrap">
+        <table>
+            <thead>
+                <tr>
+                    <th data-sort="rank">#</th>
+                    <th data-sort="name">币种</th>
+                    <th data-sort="price" style="text-align:right;">价格</th>
+                    <th data-sort="change" style="text-align:right;">24h 涨跌</th>
+                    <th data-sort="marketCap" style="text-align:right;">市值</th>
+                    <th data-sort="volume" style="text-align:right;">24h 成交量</th>
+                </tr>
+            </thead>
+            <tbody id="tableBody">
+                <tr><td colspan="6"><div class="loading"><div class="spinner"></div><span>正在连接数据源...</span></div></td></tr>
+            </tbody>
+        </table>
+    </div>
+
+    <script>
+        (function() {
+            'use strict';
+
+            // ---- DOM ----
+            const tbody = document.getElementById('tableBody');
+            const searchInput = document.getElementById('searchInput');
+            const countBadge = document.getElementById('countBadge');
+            const updateTime = document.getElementById('updateTime');
+            const statusDot = document.getElementById('statusDot');
+            const refreshBtn = document.getElementById('refreshBtn');
+            const switchSourceBtn = document.getElementById('switchSourceBtn');
+            const mockBtn = document.getElementById('mockBtn');
+
+            // ---- 状态 ----
+            let allCoins = [];
+            let filteredCoins = [];
+            let currentSort = { key: 'marketCap', asc: false };
+            let isLoading = false;
+            let updateInterval = null;
+            let currentSource = 'okx'; // 默认 OKX
+            let retryCount = 0;
+            const MAX_RETRIES = 3;
+            let errorMessage = '';
+
+            // ---- 模拟数据（降级方案） ----
+            const MOCK_DATA = [
+                { name: 'Bitcoin', symbol: 'btc', current_price: 67500, price_change_percentage_24h: 2.5,
+                market_cap: 1320000000000, total_volume: 28000000000 },
+                { name: 'Ethereum', symbol: 'eth', current_price: 3450, price_change_percentage_24h: -1.2,
+                    market_cap: 415000000000, total_volume: 15000000000 },
+                { name: 'BNB', symbol: 'bnb', current_price: 580, price_change_percentage_24h: 0.8, market_cap: 87000000000,
+                    total_volume: 2000000000 },
+                { name: 'Solana', symbol: 'sol', current_price: 170, price_change_percentage_24h: 5.3, market_cap: 76000000000,
+                    total_volume: 3000000000 },
+                { name: 'XRP', symbol: 'xrp', current_price: 0.62, price_change_percentage_24h: -0.5, market_cap: 34000000000,
+                    total_volume: 1500000000 },
+                { name: 'Cardano', symbol: 'ada', current_price: 0.45, price_change_percentage_24h: 1.1, market_cap: 16000000000,
+                    total_volume: 500000000 },
+                { name: 'Dogecoin', symbol: 'doge', current_price: 0.15, price_change_percentage_24h: 3.2,
+                    market_cap: 21000000000, total_volume: 800000000 },
+                { name: 'Polkadot', symbol: 'dot', current_price: 7.2, price_change_percentage_24h: -0.8,
+                    market_cap: 9800000000, total_volume: 300000000 }
+            ];
+
+            // ---- 格式化 ----
+            function formatPrice(price) {
+                if (price === undefined || price === null) return '--';
+                if (price >= 1000) return '$' + price.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+                if (price >= 1) return '$' + price.toFixed(4);
+                if (price >= 0.01) return '$' + price.toFixed(6);
+                return '$' + price.toFixed(8);
+            }
+
+            function formatChange(change) {
+                if (change === undefined || change === null) return '--';
+                return (change >= 0 ? '+' : '') + change.toFixed(2) + '%';
+            }
+
+            function formatLarge(num) {
+                if (num === undefined || num === null) return '--';
+                if (num >= 1e12) return '$' + (num / 1e12).toFixed(2) + 'T';
+                if (num >= 1e9) return '$' + (num / 1e9).toFixed(2) + 'B';
+                if (num >= 1e6) return '$' + (num / 1e6).toFixed(2) + 'M';
+                return '$' + num.toLocaleString();
+            }
+
+            function getChangeClass(change) {
+                if (change === undefined || change === null) return 'neutral';
+                if (change > 0) return 'positive';
+                if (change < 0) return 'negative';
+                return 'neutral';
+            }
+
+            function getIcon(symbol) {
+                const map = {
+                    'BTC': '₿', 'ETH': '⟠', 'BNB': '◆', 'SOL': '◎', 'XRP': '✕',
+                    'ADA': '₳', 'DOGE': 'Ð', 'DOT': '●', 'MATIC': '◈', 'SHIB': '⧫',
+                    'AVAX': '▲', 'LINK': '⬡', 'UNI': '🦄', 'ATOM': '⚛', 'ETC': '⟠'
+                };
+                return map[symbol.toUpperCase()] || symbol.charAt(0).toUpperCase();
+            }
+
+            // ---- 渲染 ----
+            function render(loadingText) {
+                if (loadingText) {
+                    tbody.innerHTML = `
+                        <tr><td colspan="6">
+                            <div class="loading">
+                                <div class="spinner"></div>
+                                <span>${loadingText}</span>
+                            </div>
+                        </td></tr>
+                    `;
+                    countBadge.textContent = '加载中';
+                    return;
+                }
+
+                if (allCoins.length === 0 && !errorMessage) {
+                    tbody.innerHTML = `<tr><td colspan="6"><div class="loading"><div class="spinner"></div><span>正在连接数据源...</span></div></td></tr>`;
+                    countBadge.textContent = '加载中';
+                    return;
+                }
+
+                if (errorMessage) {
+                    tbody.innerHTML = `
+                        <tr><td colspan="6">
+                            <div class="error">
+                                <div style="font-size:2rem;margin-bottom:8px;">⚠️</div>
+                                <div>${errorMessage}</div>
+                                <div class="error-detail">当前数据源: ${currentSource === 'okx' ? 'OKX' : 'Binance'}</div>
+                                <button class="retry-btn" id="retryBtn">🔄 重试</button>
+                                <button class="switch-btn" id="errorSwitchBtn">切换数据源</button>
+                                <button class="mock-btn" id="errorMockBtn">📋 使用模拟数据</button>
+                            </div>
+                        </td></tr>
+                    `;
+                    document.getElementById('retryBtn')?.addEventListener('click', () => fetchData());
+                    document.getElementById('errorSwitchBtn')?.addEventListener('click', switchSource);
+                    document.getElementById('errorMockBtn')?.addEventListener('click', loadMockData);
+                    countBadge.textContent = '加载失败';
+                    return;
+                }
+
+                const data = filteredCoins.length > 0 ? filteredCoins : allCoins;
+                if (data.length === 0) {
+                    tbody.innerHTML =
+                        `<tr><td colspan="6" style="text-align:center;padding:40px 0;color:rgba(255,255,255,0.2);">🔍 没有找到匹配的币种</td></tr>`;
+                    countBadge.textContent = '0 个结果';
+                    return;
+                }
+
+                let html = '';
+                for (let i = 0; i < data.length; i++) {
+                    const c = data[i];
+                    const change = c.price_change_percentage_24h;
+                    html += `
+                        <tr>
+                            <td style="color:rgba(255,255,255,0.25);">${c.market_cap_rank || i+1}</td>
+                            <td>
+                                <div class="coin-name">
+                                    <span class="coin-icon">${getIcon(c.symbol)}</span>
+                                    <span class="symbol">${c.symbol.toUpperCase()}</span>
+                                    <span class="fullname">${c.name}</span>
+                                </div>
+                            </td>
+                            <td style="text-align:right;"><span class="price">${formatPrice(c.current_price)}</span></td>
+                            <td style="text-align:right;"><span class="change ${getChangeClass(change)}">${formatChange(change)}</span></td>
+                            <td style="text-align:right;"><span class="market-cap">${formatLarge(c.market_cap)}</span></td>
+                            <td style="text-align:right;"><span class="volume">${formatLarge(c.total_volume)}</span></td>
+                        </tr>
+                    `;
+                }
+                tbody.innerHTML = html;
+                countBadge.textContent = data.length + ' 个币种';
+                statusDot.style.background = '#22c55e';
+            }
+
+            // ---- 排序 & 过滤 ----
+            function sortData(data, key, asc) {
+                return [...data].sort((a, b) => {
+                    let va = a[key];
+                    let vb = b[key];
+                    if (va === undefined || va === null) va = 0;
+                    if (vb === undefined || vb === null) vb = 0;
+                    if (typeof va === 'string') va = va.toLowerCase();
+                    if (typeof vb === 'string') vb = vb.toLowerCase();
+                    if (va < vb) return asc ? -1 : 1;
+                    if (va > vb) return asc ? 1 : -1;
+                    return 0;
+                });
+            }
+
+            function applySortAndFilter() {
+                const search = searchInput.value.trim().toLowerCase();
+                let result = allCoins;
+                if (search) {
+                    result = result.filter(c => c.name.toLowerCase().includes(search) || c.symbol.toLowerCase().includes(search));
+                }
+                result = sortData(result, currentSort.key, currentSort.asc);
+                filteredCoins = result;
+                render();
+            }
+
+            // ---- 数据源：OKX（国内稳定） ----
+            async function fetchOKX() {
+                const url = 'https://www.okx.com/api/v5/market/tickers?instType=SPOT';
+                const controller = new AbortController();
+                const timeoutId = setTimeout(() => controller.abort(), 8000);
+                try {
+                    const response = await fetch(url, { signal: controller.signal });
+                    clearTimeout(timeoutId);
+                    if (!response.ok) throw new Error(`HTTP ${response.status}`);
+                    const json = await response.json();
+                    if (json.code !== '0') throw new Error(json.msg || 'OKX API 返回错误');
+                    const tickers = json.data;
+                    // 过滤 USDT 交易对，并映射数据
+                    const coins = tickers
+                        .filter(item => item.instId.endsWith('-USDT'))
+                        .map(item => {
+                            const symbol = item.instId.replace('-USDT', '');
+                            const last = parseFloat(item.last);
+                            const vol24h = parseFloat(item.vol24h) || 0;
+                            // 计算涨跌幅: (last - sodUtc0) / sodUtc0 * 100
+                            const open = parseFloat(item.sodUtc0) || last;
+                            const change = open !== 0 ? ((last - open) / open * 100) : 0;
+                            // 市值估算：使用成交量 * 价格 * 2（粗略估算）
+                            const marketCap = vol24h * last * 2;
+                            return {
+                                name: symbol,
+                                symbol: symbol,
+                                current_price: last,
+                                price_change_percentage_24h: change,
+                                market_cap: marketCap,
+                                total_volume: vol24h,
+                                market_cap_rank: null // 后面排序再设置
+                            };
+                        })
+                        .filter(c => c.current_price > 0); // 去除无效
+                    // 按成交量降序排列，取前150
+                    coins.sort((a, b) => b.total_volume - a.total_volume);
+                    const top = coins.slice(0, 150);
+                    // 重新设置排名
+                    top.forEach((item, index) => { item.market_cap_rank = index + 1; });
+                    return top;
+                } catch (err) {
+                    clearTimeout(timeoutId);
+                    if (err.name === 'AbortError') throw new Error('请求超时，请检查网络');
+                    throw err;
+                }
+            }
+
+            // ---- 数据源：Binance（备用） ----
+            async function fetchBinance() {
+                const symbols = ['BTCUSDT', 'ETHUSDT', 'BNBUSDT', 'SOLUSDT', 'XRPUSDT', 'ADAUSDT', 'DOGEUSDT', 'DOTUSDT',
+                    'MATICUSDT', 'SHIBUSDT', 'AVAXUSDT', 'LINKUSDT', 'UNIUSDT', 'ATOMUSDT', 'ETCUSDT'
+                ];
+                const controller = new AbortController();
+                const timeoutId = setTimeout(() => controller.abort(), 8000);
+                try {
+                    const promises = symbols.map(sym =>
+                        fetch(`https://api.binance.com/api/v3/ticker/24hr?symbol=${sym}`, { signal: controller.signal })
+                        .then(r => r.json())
+                    );
+                    const results = await Promise.all(promises);
+                    clearTimeout(timeoutId);
+                    return results.map(item => ({
+                        name: item.symbol.replace('USDT', ''),
+                        symbol: item.symbol.replace('USDT', ''),
+                        current_price: parseFloat(item.lastPrice),
+                        price_change_percentage_24h: parseFloat(item.priceChangePercent),
+                        market_cap: parseFloat(item.quoteVolume) * 2,
+                        total_volume: parseFloat(item.quoteVolume),
+                        market_cap_rank: null
+                    }));
+                } catch (err) {
+                    clearTimeout(timeoutId);
+                    if (err.name === 'AbortError') throw new Error('请求超时，请检查网络');
+                    throw err;
+                }
+            }
+
+            // ---- 加载模拟数据 ----
+            function loadMockData() {
+                const data = MOCK_DATA.map((item, index) => ({
+                    ...item,
+                    market_cap_rank: index + 1
+                }));
+                allCoins = data;
+                currentSort = { key: 'marketCap', asc: false };
+                errorMessage = '';
+                applySortAndFilter();
+                updateTime.textContent = '使用模拟数据 ' + new Date().toLocaleTimeString('zh-CN');
+                statusDot.style.background = '#f59e0b';
+                countBadge.textContent = data.length + ' 个币种 (模拟)';
+            }
+
+            // ---- 主获取函数（带重试） ----
+            async function fetchData(forceSource = null) {
+                if (isLoading) return;
+                isLoading = true;
+                errorMessage = '';
+                const source = forceSource || currentSource;
+                let attempt = 0;
+                let success = false;
+
+                while (attempt < MAX_RETRIES && !success) {
+                    attempt++;
+                    const loadingMsg = `正在连接数据源 (尝试 ${attempt}/${MAX_RETRIES})...`;
+                    render(loadingMsg);
+                    try {
+                        let data;
+                        if (source === 'okx') {
+                            data = await fetchOKX();
+                        } else {
+                            data = await fetchBinance();
+                        }
+                        // 成功
+                        allCoins = data;
+                        currentSort = { key: 'marketCap', asc: false };
+                        errorMessage = '';
+                        success = true;
+                        const now = new Date();
+                        updateTime.textContent = '更新于 ' + now.toLocaleTimeString('zh-CN');
+                        statusDot.style.background = '#22c55e';
+                        applySortAndFilter();
+                        break;
+                    } catch (err) {
+                        console.warn(`第 ${attempt} 次尝试失败:`, err.message);
+                        if (attempt >= MAX_RETRIES) {
+                            errorMessage = `无法加载数据: ${err.message || '未知错误'}`;
+                            // 如果当前是 OKX，尝试自动切换到 Binance
+                            if (source === 'okx' && currentSource === 'okx') {
+                                try {
+                                    const binanceData = await fetchBinance();
+                                    allCoins = binanceData;
+                                    currentSort = { key: 'marketCap', asc: false };
+                                    errorMessage = '';
+                                    currentSource = 'binance';
+                                    applySortAndFilter();
+                                    updateTime.textContent = '已切换至 Binance 数据源 ' + new Date().toLocaleTimeString(
+                                    'zh-CN');
+                                    statusDot.style.background = '#f59e0b';
+                                    success = true;
+                                    break;
+                                } catch (e) {
+                                    errorMessage = 'OKX 和 Binance 均不可用，请检查网络或使用模拟数据';
+                                }
+                            }
+                            render();
+                        } else {
+                            await new Promise(resolve => setTimeout(resolve, 2000));
+                        }
+                    }
+                }
+                isLoading = false;
+                if (!success && !errorMessage) {
+                    errorMessage = '所有尝试均失败，请使用模拟数据或切换数据源';
+                    render();
+                }
+            }
+
+            // ---- 切换数据源 ----
+            function switchSource() {
+                const newSource = currentSource === 'okx' ? 'binance' : 'okx';
+                currentSource = newSource;
+                errorMessage = '';
+                fetchData(newSource);
+            }
+
+            // ---- 排序点击 ----
+            function setupSorting() {
+                document.querySelectorAll('th[data-sort]').forEach(th => {
+                    th.addEventListener('click', function() {
+                        const key = this.dataset.sort;
+                        const map = {
+                            'rank': 'market_cap_rank',
+                            'name': 'name',
+                            'price': 'current_price',
+                            'change': 'price_change_percentage_24h',
+                            'marketCap': 'market_cap',
+                            'volume': 'total_volume'
+                        };
+                        const realKey = map[key] || key;
+                        if (currentSort.key === realKey) {
+                            currentSort.asc = !currentSort.asc;
+                        } else {
+                            currentSort.key = realKey;
+                            currentSort.asc = false;
+                        }
+                        applySortAndFilter();
+                    });
+                });
+            }
+
+            // ---- 搜索防抖 ----
+            function setupSearch() {
+                let timer = null;
+                searchInput.addEventListener('input', function() {
+                    clearTimeout(timer);
+                    timer = setTimeout(() => applySortAndFilter(), 300);
+                });
+            }
+
+            // ---- 自动刷新 ----
+            function startAutoRefresh() {
+                if (updateInterval) clearInterval(updateInterval);
+                updateInterval = setInterval(() => fetchData(), 60000);
+            }
+
+            // ---- 初始化 ----
+            function init() {
+                setupSorting();
+                setupSearch();
+                refreshBtn.addEventListener('click', () => fetchData());
+                switchSourceBtn.addEventListener('click', switchSource);
+                mockBtn.addEventListener('click', loadMockData);
+
+                // 检测是否 file:// 协议
+                if (window.location.protocol === 'file:') {
+                    alert('检测到您直接双击打开文件，这可能导致跨域问题。建议使用 VS Code 的 Live Server 或部署到 GitHub Pages 打开。\n\n点击确定后将继续尝试，若一直加载，请使用“模拟数据”按钮。');
+                }
+
+                fetchData();
+                startAutoRefresh();
+
+                document.addEventListener('visibilitychange', function() {
+                    if (!document.hidden) fetchData();
+                });
+            }
+
+            if (document.readyState === 'complete') {
+                init();
+            } else {
+                window.addEventListener('load', init);
+            }
+        })();
+    </script>
+
+</body>
+</html>
