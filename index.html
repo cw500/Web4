@@ -1,0 +1,555 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>蜡笔小新 · 主题世界</title>
+    <style>
+        :root {
+            --shin-red: #e63946;
+            --shin-yellow: #ffb703;
+            --shin-blue: #457b9d;
+            --shin-green: #2a9d8f;
+            --bg: #fff9e6;
+            --card-bg: #fffef7;
+            --text: #4a3b32;
+            --text-light: #7a6b5d;
+            --shadow: 0 8px 25px rgba(0,0,0,0.12);
+            --radius: 24px;
+            --font-title: 'Comic Neue', 'Kosugi Maru', 'Comic Sans MS', 'PingFang SC', cursive, sans-serif;
+            --font-body: 'PingFang SC', 'Microsoft YaHei', 'Helvetica Neue', sans-serif;
+        }
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            font-family: var(--font-body);
+            background: var(--bg);
+            color: var(--text);
+            min-height: 100vh;
+            overflow-x: hidden;
+            position: relative;
+        }
+        /* 动态贴纸背景 */
+        .stickers-bg {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 0;
+            overflow: hidden;
+        }
+        .sticker {
+            position: absolute;
+            opacity: 0.35;
+            animation: floatSticker 18s infinite ease-in-out;
+            font-size: 3rem;
+            user-select: none;
+            filter: drop-shadow(2px 4px 6px rgba(0,0,0,0.15));
+        }
+        @keyframes floatSticker {
+            0% { transform: translate(0, 0) rotate(0deg) scale(1); }
+            33% { transform: translate(30px, -40px) rotate(8deg) scale(1.1); }
+            66% { transform: translate(-20px, 20px) rotate(-5deg) scale(0.95); }
+            100% { transform: translate(0, 0) rotate(0deg) scale(1); }
+        }
+        /* 主容器 */
+        .app-container {
+            position: relative;
+            z-index: 1;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 16px;
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+        /* 页面切换 */
+        .page {
+            display: none;
+        }
+        .page.active {
+            display: block;
+        }
+        /* 音乐按钮 */
+        .music-btn {
+            position: fixed;
+            bottom: 25px;
+            right: 25px;
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            background: var(--shin-red);
+            color: white;
+            border: none;
+            font-size: 1.8rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 6px 20px rgba(230,57,70,0.5);
+            cursor: pointer;
+            z-index: 999;
+            transition: 0.2s;
+            animation: pulseMusic 2s infinite;
+        }
+        .music-btn:hover {
+            transform: scale(1.1);
+        }
+        @keyframes pulseMusic {
+            0%,100% { box-shadow: 0 0 0 0 rgba(230,57,70,0.7); }
+            50% { box-shadow: 0 0 0 15px rgba(230,57,70,0); }
+        }
+        /* 首页 */
+        .home-header {
+            text-align: center;
+            padding: 20px 0;
+        }
+        .home-title {
+            font-family: var(--font-title);
+            font-size: clamp(2.2rem, 8vw, 3.8rem);
+            color: var(--shin-red);
+            text-shadow: 2px 2px 0 #ffcdb2;
+            margin-bottom: 8px;
+        }
+        .home-subtitle {
+            font-size: 1.1rem;
+            color: var(--text-light);
+            margin-bottom: 24px;
+        }
+        .entry-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+            gap: 24px;
+            padding: 10px 0;
+        }
+        .entry-card {
+            background: var(--card-bg);
+            border-radius: var(--radius);
+            padding: 30px 20px;
+            text-align: center;
+            box-shadow: var(--shadow);
+            cursor: pointer;
+            transition: 0.25s;
+            border: 3px dashed #f4a261;
+            position: relative;
+            overflow: hidden;
+        }
+        .entry-card:hover {
+            transform: translateY(-6px);
+            border-color: var(--shin-red);
+            background: #fff3e0;
+        }
+        .entry-icon {
+            font-size: 3.5rem;
+            margin-bottom: 12px;
+            display: block;
+        }
+        .entry-label {
+            font-family: var(--font-title);
+            font-size: 1.4rem;
+            font-weight: 700;
+            color: var(--shin-blue);
+        }
+        .entry-desc {
+            font-size: 0.85rem;
+            color: var(--text-light);
+            margin-top: 6px;
+        }
+        /* 分区页通用 */
+        .section-header {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 16px;
+        }
+        .back-btn {
+            background: var(--shin-yellow);
+            border: none;
+            border-radius: 30px;
+            padding: 10px 18px;
+            font-weight: bold;
+            font-size: 1rem;
+            cursor: pointer;
+            color: #4a3b32;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+            transition: 0.2s;
+        }
+        .back-btn:hover {
+            background: #ffba08;
+            transform: scale(1.03);
+        }
+        .section-title {
+            font-family: var(--font-title);
+            font-size: 1.8rem;
+            color: var(--shin-red);
+        }
+        .card-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+            gap: 18px;
+        }
+        .char-card {
+            background: white;
+            border-radius: 20px;
+            padding: 16px 8px;
+            text-align: center;
+            box-shadow: 0 4px 18px rgba(0,0,0,0.08);
+            transition: 0.2s;
+        }
+        .char-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 30px rgba(0,0,0,0.15);
+        }
+        .char-img {
+            width: 80px;
+            height: 80px;
+            border-radius: 50%;
+            object-fit: contain;
+            background: #f9e9d2;
+            margin-bottom: 8px;
+        }
+        .char-name {
+            font-weight: 700;
+            font-size: 0.95rem;
+            color: #2b2b2b;
+        }
+        .char-role {
+            font-size: 0.75rem;
+            color: #7a6b5d;
+            margin-top: 4px;
+        }
+        /* 关系树 */
+        .tree-container {
+            background: white;
+            border-radius: var(--radius);
+            padding: 20px;
+            overflow-x: auto;
+        }
+        .tree ul {
+            list-style: none;
+            position: relative;
+            padding-left: 20px;
+        }
+        .tree li {
+            position: relative;
+            padding: 4px 0;
+            line-height: 1.6;
+        }
+        .tree li::before {
+            content: '';
+            position: absolute;
+            top: 0.8em;
+            left: -15px;
+            width: 15px;
+            height: 2px;
+            background: #f4a261;
+        }
+        .tree li::after {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -15px;
+            width: 2px;
+            height: 100%;
+            background: #f4a261;
+        }
+        .tree li:last-child::after {
+            height: 0.8em;
+        }
+        .tree > ul > li::before,
+        .tree > ul > li::after {
+            display: none;
+        }
+        .tree .root {
+            font-weight: 800;
+            color: var(--shin-red);
+            font-size: 1.1rem;
+        }
+        /* 视频选择器 */
+        .video-selector {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 16px;
+            margin: 20px 0;
+        }
+        select, .episode-btn {
+            padding: 10px 18px;
+            border-radius: 20px;
+            border: 2px solid #f4a261;
+            background: white;
+            font-size: 1rem;
+            cursor: pointer;
+        }
+        .episode-list {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            margin-top: 12px;
+        }
+        .ep-tag {
+            background: #ffecd2;
+            border-radius: 12px;
+            padding: 8px 14px;
+            cursor: pointer;
+            transition: 0.2s;
+            font-size: 0.85rem;
+        }
+        .ep-tag:hover {
+            background: #f4a261;
+            color: white;
+        }
+        /* 响应式 */
+        @media (max-width: 640px) {
+            .entry-grid {
+                grid-template-columns: 1fr 1fr;
+            }
+            .card-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+            .music-btn {
+                width: 42px;
+                height: 42px;
+                font-size: 1.4rem;
+                bottom: 15px;
+                right: 15px;
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <!-- 动态贴纸背景 -->
+    <div class="stickers-bg" id="stickersBg"></div>
+
+    <!-- 音乐按钮 -->
+    <button class="music-btn" id="musicToggle" title="播放/暂停音乐">🎵</button>
+
+    <div class="app-container">
+        <!-- ========== 主页 ========== -->
+        <div class="page active" id="homePage">
+            <div class="home-header">
+                <h1 class="home-title">🖍️ 蜡笔小新世界</h1>
+                <p class="home-subtitle">クレヨンしんちゃん · 永远的五岁小孩</p>
+            </div>
+            <div class="entry-grid">
+                <div class="entry-card" onclick="showPage('introPage')">
+                    <span class="entry-icon">📺</span>
+                    <div class="entry-label">动漫介绍</div>
+                    <div class="entry-desc">了解小新的奇妙日常</div>
+                </div>
+                <div class="entry-card" onclick="showPage('charPage')">
+                    <span class="entry-icon">👨‍👩‍👧‍👦</span>
+                    <div class="entry-label">角色档案</div>
+                    <div class="entry-desc">春日部防卫队全员</div>
+                </div>
+                <div class="entry-card" onclick="showPage('treePage')">
+                    <span class="entry-icon">🌳</span>
+                    <div class="entry-label">关系树</div>
+                    <div class="entry-desc">谁是谁的谁？</div>
+                </div>
+                <div class="entry-card" onclick="showPage('videoPage')">
+                    <span class="entry-icon">🎬</span>
+                    <div class="entry-label">视频剧场</div>
+                    <div class="entry-desc">每一集都精彩</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ========== 分区1：动漫介绍 ========== -->
+        <div class="page" id="introPage">
+            <div class="section-header">
+                <button class="back-btn" onclick="showPage('homePage')">← 返回</button>
+                <h2 class="section-title">📺 关于蜡笔小新</h2>
+            </div>
+            <div style="background: url('https://wallpapercave.com/wp/wp6238317.jpg') center/cover no-repeat; border-radius: 24px; min-height: 320px; display: flex; align-items: flex-end; padding: 24px; box-shadow: var(--shadow);">
+                <div style="background: rgba(255,255,240,0.9); border-radius: 16px; padding: 20px; width: 100%;">
+                    <p style="font-size: 1rem; line-height: 1.7;">
+                        《蜡笔小新》是日本漫画家臼井仪人创作的经典漫画，1990年开始连载，1992年动画化。故事围绕5岁小男孩野原新之助的日常生活展开，以其幽默、无厘头的风格深受全球观众喜爱。动画至今仍在播出，拥有众多剧场版和特别篇。
+                    </p>
+                    <p style="margin-top: 10px; color: #e63946;">🎨 背景图片为野原一家全家福（超高清壁纸）</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- ========== 分区2：角色介绍 ========== -->
+        <div class="page" id="charPage">
+            <div class="section-header">
+                <button class="back-btn" onclick="showPage('homePage')">← 返回</button>
+                <h2 class="section-title">👨‍👩‍👧‍👦 主要角色</h2>
+            </div>
+            <div class="card-grid" id="charGrid"></div>
+        </div>
+
+        <!-- ========== 分区3：关系树 ========== -->
+        <div class="page" id="treePage">
+            <div class="section-header">
+                <button class="back-btn" onclick="showPage('homePage')">← 返回</button>
+                <h2 class="section-title">🌳 角色关系树</h2>
+            </div>
+            <div class="tree-container">
+                <div class="tree">
+                    <ul>
+                        <li class="root">🏠 野原一家
+                            <ul>
+                                <li>👨 野原广志 (爸爸) — 妻子：野原美伢</li>
+                                <li>👩 野原美伢 (妈妈)</li>
+                                <li>👦 野原新之助 (小新) — 朋友：风间彻、樱田妮妮、阿呆、佐藤正男</li>
+                                <li>🐶 小白 (宠物狗)</li>
+                                <li>👶 野原向日葵 (妹妹)</li>
+                            </ul>
+                        </li>
+                        <li style="margin-top:12px;">🏫 双叶幼稚园
+                            <ul>
+                                <li>👩‍🏫 酢乙女老师 (班主任)</li>
+                                <li>👦 风间彻</li>
+                                <li>👧 樱田妮妮</li>
+                                <li>👦 阿呆</li>
+                                <li>👦 佐藤正男</li>
+                            </ul>
+                        </li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+
+        <!-- ========== 分区4：视频剧场 ========== -->
+        <div class="page" id="videoPage">
+            <div class="section-header">
+                <button class="back-btn" onclick="showPage('homePage')">← 返回</button>
+                <h2 class="section-title">🎬 视频剧场</h2>
+            </div>
+            <p style="margin-bottom:12px;">选择季和集，点击跳转B站观看（官方番剧）</p>
+            <div class="video-selector">
+                <select id="seasonSelect">
+                    <option value="1">第一季</option>
+                    <option value="2">第二季</option>
+                    <option value="3">第三季</option>
+                    <option value="4">第四季</option>
+                </select>
+                <button class="episode-btn" onclick="loadEpisodes()">加载剧集</button>
+            </div>
+            <div class="episode-list" id="episodeList"></div>
+        </div>
+    </div>
+
+    <!-- 背景音乐 -->
+    <audio id="bgm" loop preload="auto">
+        <source src="https://www.myinstants.com/media/sounds/crayon-shin-chan-theme-song.mp3" type="audio/mpeg">
+        您的浏览器不支持音频播放。
+    </audio>
+
+    <script>
+        // ==================== 角色数据 ====================
+        const characters = [
+            { name:'野原新之助', role:'主角，5岁', img:'https://static.wikia.nocookie.net/crayonshinchan/images/8/8c/Shin-chan.png' },
+            { name:'野原美伢', role:'妈妈，家庭主妇', img:'https://static.wikia.nocookie.net/crayonshinchan/images/1/1e/Misae_Nohara.png' },
+            { name:'野原广志', role:'爸爸，上班族', img:'https://static.wikia.nocookie.net/crayonshinchan/images/4/4a/Hiroshi_Nohara.png' },
+            { name:'野原向日葵', role:'妹妹，婴儿', img:'https://static.wikia.nocookie.net/crayonshinchan/images/3/3c/Himawari_Nohara.png' },
+            { name:'小白', role:'宠物狗', img:'https://static.wikia.nocookie.net/crayonshinchan/images/9/91/Shiro.png' },
+            { name:'风间彻', role:'同学，富家子', img:'https://static.wikia.nocookie.net/crayonshinchan/images/9/92/Toru_Kazama.png' },
+            { name:'樱田妮妮', role:'同学，强势女孩', img:'https://static.wikia.nocookie.net/crayonshinchan/images/5/5c/Nene_Sakurada.png' },
+            { name:'阿呆', role:'同学，鼻涕男孩', img:'https://static.wikia.nocookie.net/crayonshinchan/images/2/2c/Boo.png' },
+            { name:'佐藤正男', role:'同学，胆小', img:'https://static.wikia.nocookie.net/crayonshinchan/images/1/1e/Masao_Sato.png' },
+            { name:'酢乙女老师', role:'向日葵班老师', img:'https://static.wikia.nocookie.net/crayonshinchan/images/6/6f/Ms._Yoshinaga.png' }
+        ];
+
+        // ==================== 视频剧集模拟数据 ====================
+        const episodesData = {
+            '1': Array.from({length:12}, (_,i)=> `第${i+1}集`),
+            '2': Array.from({length:10}, (_,i)=> `第${i+1}集`),
+            '3': Array.from({length:8}, (_,i)=> `第${i+1}集`),
+            '4': Array.from({length:6}, (_,i)=> `第${i+1}集`),
+        };
+
+        // ==================== 页面切换 ====================
+        function showPage(pageId) {
+            document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+            document.getElementById(pageId).classList.add('active');
+            window.scrollTo({top:0, behavior:'smooth'});
+        }
+
+        // ==================== 角色卡片渲染 ====================
+        function renderCharacters() {
+            const grid = document.getElementById('charGrid');
+            if (!grid) return;
+            grid.innerHTML = characters.map(c => `
+                <div class="char-card">
+                    <img src="${c.img}" alt="${c.name}" class="char-img" onerror="this.src='data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 width=%2280%22 height=%2280%22%3E%3Ccircle cx=%2240%22 cy=%2240%22 r=%2240%22 fill=%22%23f9e9d2%22/%3E%3Ctext x=%2240%22 y=%2250%22 text-anchor=%22middle%22 font-size=%2222%22%3E${c.name[0]}%3C/text%3E%3C/svg%3E';">
+                    <div class="char-name">${c.name}</div>
+                    <div class="char-role">${c.role}</div>
+                </div>
+            `).join('');
+        }
+
+        // ==================== 视频加载 ====================
+        function loadEpisodes() {
+            const season = document.getElementById('seasonSelect').value;
+            const eps = episodesData[season] || [];
+            const listDiv = document.getElementById('episodeList');
+            listDiv.innerHTML = eps.map((ep, idx) => {
+                const epNum = idx + 1;
+                // 跳转到B站蜡笔小新番剧搜索（示例，实际可替换为精确epid）
+                const biliUrl = `https://search.bilibili.com/all?keyword=蜡笔小新 第${season}季 第${epNum}集`;
+                return `<span class="ep-tag" onclick="window.open('${biliUrl}', '_blank')">${ep}</span>`;
+            }).join('');
+        }
+
+        // ==================== 动态贴纸生成 ====================
+        function createStickers() {
+            const container = document.getElementById('stickersBg');
+            const emojis = ['🖍️','⭐','🐶','🌸','🎀','⚽','🍡','🦸','👾','🎈'];
+            for (let i = 0; i < 30; i++) {
+                const sticker = document.createElement('div');
+                sticker.className = 'sticker';
+                sticker.textContent = emojis[Math.floor(Math.random() * emojis.length)];
+                sticker.style.left = Math.random() * 100 + '%';
+                sticker.style.top = Math.random() * 100 + '%';
+                sticker.style.animationDelay = Math.random() * 15 + 's';
+                sticker.style.fontSize = (Math.random() * 2.5 + 1.5) + 'rem';
+                container.appendChild(sticker);
+            }
+        }
+
+        // ==================== 音乐控制 ====================
+        const bgm = document.getElementById('bgm');
+        const musicBtn = document.getElementById('musicToggle');
+        let musicPlaying = false;
+
+        musicBtn.addEventListener('click', () => {
+            if (musicPlaying) {
+                bgm.pause();
+                musicBtn.textContent = '🎵';
+            } else {
+                bgm.play().catch(e => console.log('自动播放需用户交互'));
+                musicBtn.textContent = '🔊';
+            }
+            musicPlaying = !musicPlaying;
+        });
+
+        // 尝试自动播放（需浏览器允许）
+        document.addEventListener('click', function initMusic() {
+            if (!musicPlaying) {
+                bgm.play().then(() => {
+                    musicPlaying = true;
+                    musicBtn.textContent = '🔊';
+                }).catch(() => {});
+            }
+        }, { once: true });
+
+        // ==================== 初始化 ====================
+        window.onload = () => {
+            createStickers();
+            renderCharacters();
+            // 默认加载第一季剧集
+            loadEpisodes();
+        };
+    </script>
+</body>
+</html>
