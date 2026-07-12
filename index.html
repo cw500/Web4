@@ -1,0 +1,1368 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>NewsHub - 全球新闻聚合</title>
+    <style>
+        :root {
+            --bg: #f5f6f8;
+            --card-bg: #ffffff;
+            --text: #1a1a2e;
+            --text-secondary: #5a5a7a;
+            --text-tertiary: #8888a0;
+            --accent: #2563eb;
+            --accent-light: #e8f0fe;
+            --border: #e8eaef;
+            --shadow: 0 1px 3px rgba(0, 0, 0, 0.04), 0 1px 2px rgba(0, 0, 0, 0.06);
+            --shadow-hover: 0 10px 25px rgba(0, 0, 0, 0.08), 0 4px 10px rgba(0, 0, 0, 0.05);
+            --radius: 16px;
+            --radius-sm: 10px;
+            --radius-xs: 6px;
+            --transition: 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+            --tag-bg: #f0f2f5;
+            --tag-text: #4a4a6a;
+            --skeleton: #e8eaef;
+            --skeleton-shine: #f0f2f5;
+            --source-dot: #2563eb;
+            --header-bg: rgba(255, 255, 255, 0.85);
+            --divider: #eeeef2;
+        }
+
+        [data-theme="dark"] {
+            --bg: #0f0f1a;
+            --card-bg: #1a1a2e;
+            --text: #e8e8f0;
+            --text-secondary: #b0b0c8;
+            --text-tertiary: #7a7a96;
+            --accent: #5b9cf5;
+            --accent-light: #1a2540;
+            --border: #2a2a40;
+            --shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+            --shadow-hover: 0 10px 25px rgba(0, 0, 0, 0.3);
+            --tag-bg: #252540;
+            --tag-text: #c0c0d8;
+            --skeleton: #252540;
+            --skeleton-shine: #2e2e4a;
+            --header-bg: rgba(15, 15, 26, 0.85);
+            --divider: #2a2a40;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Microsoft YaHei', 'Helvetica Neue', sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            line-height: 1.6;
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+            transition: background 0.3s, color 0.3s;
+            min-height: 100vh;
+        }
+
+        .header {
+            position: sticky;
+            top: 0;
+            z-index: 100;
+            background: var(--header-bg);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border-bottom: 1px solid var(--border);
+            padding: 0 20px;
+            transition: all 0.3s;
+        }
+        .header-inner {
+            max-width: 1300px;
+            margin: 0 auto;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            height: 60px;
+            gap: 16px;
+        }
+        .logo {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-weight: 800;
+            font-size: 1.35rem;
+            letter-spacing: -0.5px;
+            color: var(--text);
+            text-decoration: none;
+            white-space: nowrap;
+        }
+        .logo-icon {
+            width: 36px;
+            height: 36px;
+            border-radius: 10px;
+            background: var(--accent);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #fff;
+            font-weight: 900;
+            font-size: 1.1rem;
+        }
+        .header-actions {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            flex-shrink: 0;
+        }
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 8px 16px;
+            border-radius: 20px;
+            border: 1px solid var(--border);
+            background: var(--card-bg);
+            color: var(--text);
+            cursor: pointer;
+            font-size: 0.88rem;
+            font-weight: 500;
+            transition: var(--transition);
+            white-space: nowrap;
+            user-select: none;
+            -webkit-tap-highlight-color: transparent;
+        }
+        .btn:hover {
+            background: var(--accent-light);
+            border-color: var(--accent);
+            color: var(--accent);
+        }
+        .btn:active {
+            transform: scale(0.96);
+        }
+        .btn-primary {
+            background: var(--accent);
+            color: #fff;
+            border-color: var(--accent);
+            font-weight: 600;
+        }
+        .btn-primary:hover {
+            background: #1d4ed8;
+            border-color: #1d4ed8;
+            color: #fff;
+        }
+        .btn-icon {
+            width: 38px;
+            height: 38px;
+            padding: 0;
+            border-radius: 50%;
+            justify-content: center;
+            font-size: 1.1rem;
+        }
+        .update-indicator {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 0.78rem;
+            color: var(--text-tertiary);
+            white-space: nowrap;
+        }
+        .update-dot {
+            width: 7px;
+            height: 7px;
+            border-radius: 50%;
+            background: #22c55e;
+            animation: pulse-dot 2s infinite;
+        }
+        .update-dot.stale {
+            background: #f59e0b;
+            animation: none;
+        }
+        @keyframes pulse-dot {
+            0%,
+            100% {
+                box-shadow: 0 0 0 0 rgba(34, 197, 94, 0.5);
+            }
+            50% {
+                box-shadow: 0 0 0 8px rgba(34, 197, 94, 0);
+            }
+        }
+
+        .main-container {
+            max-width: 1300px;
+            margin: 0 auto;
+            padding: 16px 20px 40px;
+        }
+
+        .classification-bar {
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 16px;
+            padding: 4px 0;
+        }
+        .view-toggle {
+            display: flex;
+            background: var(--card-bg);
+            border-radius: 22px;
+            padding: 3px;
+            border: 1px solid var(--border);
+            gap: 2px;
+            flex-shrink: 0;
+        }
+        .view-toggle-btn {
+            padding: 7px 16px;
+            border-radius: 19px;
+            border: none;
+            background: transparent;
+            cursor: pointer;
+            font-size: 0.84rem;
+            font-weight: 500;
+            color: var(--text-secondary);
+            transition: var(--transition);
+            white-space: nowrap;
+            -webkit-tap-highlight-color: transparent;
+        }
+        .view-toggle-btn.active {
+            background: var(--accent);
+            color: #fff;
+            font-weight: 600;
+            box-shadow: 0 2px 8px rgba(37, 99, 235, 0.3);
+        }
+        .tabs-scroll {
+            flex: 1;
+            overflow-x: auto;
+            display: flex;
+            gap: 6px;
+            padding: 4px 0;
+            scrollbar-width: none;
+            -ms-overflow-style: none;
+            -webkit-overflow-scrolling: touch;
+        }
+        .tabs-scroll::-webkit-scrollbar {
+            display: none;
+        }
+        .tab-chip {
+            padding: 7px 14px;
+            border-radius: 18px;
+            border: 1px solid var(--border);
+            background: var(--card-bg);
+            cursor: pointer;
+            font-size: 0.82rem;
+            font-weight: 500;
+            color: var(--text-secondary);
+            white-space: nowrap;
+            transition: var(--transition);
+            user-select: none;
+            -webkit-tap-highlight-color: transparent;
+            flex-shrink: 0;
+        }
+        .tab-chip:hover {
+            border-color: var(--accent);
+            color: var(--accent);
+            background: var(--accent-light);
+        }
+        .tab-chip.active {
+            background: var(--accent);
+            color: #fff;
+            border-color: var(--accent);
+            font-weight: 600;
+        }
+        .tab-chip .count {
+            font-size: 0.7rem;
+            opacity: 0.8;
+            margin-left: 4px;
+        }
+
+        .search-wrap {
+            position: relative;
+            flex-shrink: 0;
+            width: 200px;
+        }
+        .search-input {
+            width: 100%;
+            padding: 8px 14px 8px 36px;
+            border-radius: 20px;
+            border: 1px solid var(--border);
+            background: var(--card-bg);
+            color: var(--text);
+            font-size: 0.84rem;
+            outline: none;
+            transition: var(--transition);
+        }
+        .search-input:focus {
+            border-color: var(--accent);
+            box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+            width: 240px;
+        }
+        .search-icon {
+            position: absolute;
+            left: 12px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: var(--text-tertiary);
+            font-size: 0.9rem;
+            pointer-events: none;
+        }
+
+        .stats-bar {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 14px;
+            font-size: 0.78rem;
+            color: var(--text-tertiary);
+            flex-wrap: wrap;
+        }
+        .stats-bar .highlight {
+            color: var(--accent);
+            font-weight: 600;
+        }
+
+        .news-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 16px;
+        }
+        @media (max-width: 1024px) {
+            .news-grid {
+                grid-template-columns: repeat(2, 1fr);
+                gap: 12px;
+            }
+            .search-wrap {
+                width: 150px;
+            }
+            .search-input:focus {
+                width: 180px;
+            }
+        }
+        @media (max-width: 640px) {
+            .news-grid {
+                grid-template-columns: 1fr;
+                gap: 10px;
+            }
+            .header-inner {
+                height: 52px;
+                gap: 8px;
+            }
+            .logo {
+                font-size: 1.1rem;
+            }
+            .logo-icon {
+                width: 30px;
+                height: 30px;
+                font-size: 0.9rem;
+                border-radius: 8px;
+            }
+            .btn {
+                padding: 6px 10px;
+                font-size: 0.78rem;
+                border-radius: 16px;
+            }
+            .btn-icon {
+                width: 32px;
+                height: 32px;
+            }
+            .update-indicator {
+                font-size: 0.7rem;
+            }
+            .classification-bar {
+                gap: 6px;
+                margin-bottom: 10px;
+            }
+            .view-toggle-btn {
+                padding: 6px 12px;
+                font-size: 0.76rem;
+            }
+            .tab-chip {
+                padding: 6px 10px;
+                font-size: 0.74rem;
+                border-radius: 14px;
+            }
+            .search-wrap {
+                width: 120px;
+            }
+            .search-input {
+                padding: 7px 10px 7px 30px;
+                font-size: 0.76rem;
+            }
+            .search-input:focus {
+                width: 150px;
+            }
+            .main-container {
+                padding: 10px 10px 30px;
+            }
+            .stats-bar {
+                font-size: 0.7rem;
+                gap: 6px;
+            }
+        }
+
+        .news-card {
+            background: var(--card-bg);
+            border-radius: var(--radius);
+            padding: 18px;
+            border: 1px solid var(--border);
+            cursor: pointer;
+            transition: var(--transition);
+            position: relative;
+            box-shadow: var(--shadow);
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            min-height: 140px;
+        }
+        .news-card:hover {
+            box-shadow: var(--shadow-hover);
+            transform: translateY(-2px);
+            border-color: #c8d6e5;
+        }
+        [data-theme="dark"] .news-card:hover {
+            border-color: #4a4a6a;
+        }
+        .news-card:active {
+            transform: scale(0.985);
+        }
+        .card-meta {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            flex-wrap: wrap;
+            font-size: 0.75rem;
+            color: var(--text-tertiary);
+        }
+        .source-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+            font-weight: 600;
+            color: var(--accent);
+            font-size: 0.76rem;
+            background: var(--accent-light);
+            padding: 3px 10px;
+            border-radius: 12px;
+            white-space: nowrap;
+        }
+        .source-dot {
+            width: 6px;
+            height: 6px;
+            border-radius: 50%;
+            background: var(--accent);
+            flex-shrink: 0;
+        }
+        .card-time {
+            white-space: nowrap;
+            font-size: 0.73rem;
+            color: var(--text-tertiary);
+        }
+        .card-title {
+            font-weight: 700;
+            font-size: 0.98rem;
+            line-height: 1.5;
+            color: var(--text);
+            display: -webkit-box;
+            -webkit-line-clamp: 3;
+            -webkit-box-orient: vertical;
+            overflow: hidden;
+            flex-grow: 1;
+            letter-spacing: -0.2px;
+        }
+        .card-desc {
+            font-size: 0.8rem;
+            color: var(--text-secondary);
+            display: -webkit-box;
+            -webkit-line-clamp: 2;
+            -webkit-box-orient: vertical;
+            overflow: hidden;
+            line-height: 1.5;
+        }
+        .card-category-tag {
+            display: inline-block;
+            font-size: 0.7rem;
+            padding: 2px 8px;
+            border-radius: 10px;
+            background: var(--tag-bg);
+            color: var(--tag-text);
+            font-weight: 500;
+            align-self: flex-start;
+        }
+        .card-img {
+            width: 100%;
+            height: 160px;
+            object-fit: cover;
+            border-radius: var(--radius-sm);
+            background: var(--skeleton);
+        }
+        @media (max-width: 640px) {
+            .news-card {
+                padding: 14px;
+                gap: 8px;
+                min-height: auto;
+                border-radius: var(--radius-sm);
+            }
+            .card-title {
+                font-size: 0.9rem;
+                -webkit-line-clamp: 2;
+            }
+            .card-desc {
+                font-size: 0.76rem;
+            }
+            .card-img {
+                height: 140px;
+                border-radius: 8px;
+            }
+        }
+
+        .skeleton-card {
+            background: var(--card-bg);
+            border-radius: var(--radius);
+            padding: 18px;
+            border: 1px solid var(--border);
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            min-height: 160px;
+        }
+        .skeleton-line {
+            height: 14px;
+            border-radius: 6px;
+            background: var(--skeleton);
+            animation: shimmer 1.5s infinite;
+            background: linear-gradient(90deg, var(--skeleton) 25%, var(--skeleton-shine) 50%, var(--skeleton) 75%);
+            background-size: 200% 100%;
+        }
+        .skeleton-line.short {
+            width: 40%;
+            height: 12px;
+        }
+        .skeleton-line.medium {
+            width: 70%;
+        }
+        .skeleton-line.long {
+            width: 90%;
+        }
+        @keyframes shimmer {
+            0% {
+                background-position: 200% 0;
+            }
+            100% {
+                background-position: -200% 0;
+            }
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 60px 20px;
+            color: var(--text-tertiary);
+            grid-column: 1 / -1;
+        }
+        .empty-state .icon {
+            font-size: 3rem;
+            margin-bottom: 12px;
+        }
+        .empty-state p {
+            margin-bottom: 16px;
+            font-size: 0.9rem;
+        }
+
+        .scroll-top {
+            position: fixed;
+            bottom: 30px;
+            right: 30px;
+            width: 44px;
+            height: 44px;
+            border-radius: 50%;
+            background: var(--card-bg);
+            border: 1px solid var(--border);
+            cursor: pointer;
+            font-size: 1.2rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: var(--shadow);
+            transition: var(--transition);
+            opacity: 0;
+            transform: translateY(20px);
+            pointer-events: none;
+            z-index: 99;
+            color: var(--text);
+        }
+        .scroll-top.visible {
+            opacity: 1;
+            transform: translateY(0);
+            pointer-events: auto;
+        }
+        .scroll-top:hover {
+            background: var(--accent);
+            color: #fff;
+            border-color: var(--accent);
+        }
+        @media (max-width: 640px) {
+            .scroll-top {
+                bottom: 20px;
+                right: 16px;
+                width: 38px;
+                height: 38px;
+                font-size: 1rem;
+            }
+        }
+
+        .footer {
+            text-align: center;
+            padding: 20px;
+            color: var(--text-tertiary);
+            font-size: 0.75rem;
+            border-top: 1px solid var(--divider);
+            margin-top: 20px;
+        }
+
+        .toast {
+            position: fixed;
+            bottom: 30px;
+            left: 50%;
+            transform: translateX(-50%) translateY(100px);
+            background: #1a1a2e;
+            color: #fff;
+            padding: 10px 22px;
+            border-radius: 22px;
+            font-size: 0.84rem;
+            z-index: 200;
+            transition: transform 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+            pointer-events: none;
+            white-space: nowrap;
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.25);
+        }
+        .toast.show {
+            transform: translateX(-50%) translateY(0);
+        }
+    </style>
+</head>
+<body data-theme="light">
+
+    <header class="header">
+        <div class="header-inner">
+            <a href="#" class="logo" onclick="resetAll();return false;">
+                <span class="logo-icon">N</span> NewsHub
+            </a>
+            <div class="header-actions">
+                <span class="update-indicator" id="updateIndicator" title="数据新鲜度">
+                    <span class="update-dot" id="updateDot"></span>
+                    <span id="updateText">加载中...</span>
+                </span>
+                <button class="btn btn-icon" onclick="toggleTheme()" title="切换暗色模式" aria-label="切换主题">
+                    🌓
+                </button>
+                <button class="btn btn-primary" onclick="refreshNews()" id="refreshBtn" title="刷新新闻">
+                    🔄 <span class="hide-mobile">刷新</span>
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <div class="main-container">
+        <div class="classification-bar">
+            <div class="view-toggle">
+                <button class="view-toggle-btn active" data-view="category" onclick="switchView('category')">
+                    📂 按类别
+                </button>
+                <button class="view-toggle-btn" data-view="source" onclick="switchView('source')">
+                    🏷️ 按来源
+                </button>
+            </div>
+            <div class="tabs-scroll" id="tabsContainer"></div>
+            <div class="search-wrap">
+                <span class="search-icon">🔍</span>
+                <input type="text" class="search-input" id="searchInput" placeholder="搜索新闻..." oninput="onSearch()">
+            </div>
+        </div>
+
+        <div class="stats-bar" id="statsBar">
+            <span>共 <span class="highlight" id="statTotal">0</span> 条新闻</span>
+            <span>·</span>
+            <span>覆盖 <span class="highlight" id="statSources">0</span> 个来源</span>
+            <span>·</span>
+            <span>更新于 <span class="highlight" id="statTime">--</span></span>
+        </div>
+
+        <div class="news-grid" id="newsGrid"></div>
+    </div>
+
+    <button class="scroll-top" id="scrollTopBtn" onclick="window.scrollTo({top:0,behavior:'smooth'})" title="回到顶部">
+        ↑
+    </button>
+
+    <div class="toast" id="toast"></div>
+
+    <div class="footer">
+        NewsHub · 全球新闻聚合 · 数据来源于各大新闻网站RSS · 无广告 · 纯静态
+    </div>
+
+    <script>
+        (function() {
+            // ==================== 配置 ====================
+            const RSS_SOURCES = [
+                {
+                    id: 'xinhua',
+                    name: '新华网',
+                    rss: 'https://rsshub.app/xinhua/news',
+                    category: '国内',
+                    country: 'cn',
+                    icon: '📰',
+                    altRss: 'http://www.xinhuanet.com/rss/english/index.xml'
+                },
+                {
+                    id: 'people',
+                    name: '人民网',
+                    rss: 'https://rsshub.app/people/rmw',
+                    category: '国内',
+                    country: 'cn',
+                    icon: '📋',
+                    altRss: 'http://www.people.com.cn/rss/politics.xml'
+                },
+                {
+                    id: 'thepaper',
+                    name: '澎湃新闻',
+                    rss: 'https://rsshub.app/thepaper/featured',
+                    category: '综合',
+                    country: 'cn',
+                    icon: '📡'
+                },
+                {
+                    id: '36kr',
+                    name: '36氪',
+                    rss: 'https://rsshub.app/36kr/motif/latest',
+                    category: '科技',
+                    country: 'cn',
+                    icon: '💻',
+                    altRss: 'https://36kr.com/feed'
+                },
+                {
+                    id: 'huxiu',
+                    name: '虎嗅',
+                    rss: 'https://rsshub.app/huxiu/article',
+                    category: '科技',
+                    country: 'cn',
+                    icon: '🐯',
+                    altRss: 'https://www.huxiu.com/rss/0.xml'
+                },
+                {
+                    id: 'ithome',
+                    name: 'IT之家',
+                    rss: 'https://rsshub.app/ithome',
+                    category: '科技',
+                    country: 'cn',
+                    icon: '🖥️',
+                    altRss: 'https://www.ithome.com/rss/'
+                },
+                {
+                    id: 'cls',
+                    name: '财联社',
+                    rss: 'https://rsshub.app/cls/depth/1000',
+                    category: '财经',
+                    country: 'cn',
+                    icon: '📈',
+                    altRss: 'https://www.cls.cn/rss'
+                },
+                {
+                    id: 'caixin',
+                    name: '财新网',
+                    rss: 'https://rsshub.app/caixin/latest',
+                    category: '财经',
+                    country: 'cn',
+                    icon: '💹'
+                },
+                {
+                    id: 'hupu',
+                    name: '虎扑体育',
+                    rss: 'https://rsshub.app/hupu/all',
+                    category: '体育',
+                    country: 'cn',
+                    icon: '⚽'
+                },
+                {
+                    id: 'douban-movie',
+                    name: '豆瓣电影',
+                    rss: 'https://rsshub.app/douban/movie/playing',
+                    category: '娱乐',
+                    country: 'cn',
+                    icon: '🎬'
+                },
+                {
+                    id: 'bbc',
+                    name: 'BBC News',
+                    rss: 'https://feeds.bbci.co.uk/news/world/rss.xml',
+                    category: '国际',
+                    country: 'uk',
+                    icon: '🌍'
+                },
+                {
+                    id: 'reuters',
+                    name: 'Reuters',
+                    rss: 'https://rsshub.app/reuters/world',
+                    category: '国际',
+                    country: 'uk',
+                    icon: '📡',
+                    altRss: 'https://www.reutersagency.com/feed/'
+                },
+                {
+                    id: 'cnn',
+                    name: 'CNN',
+                    rss: 'https://rsshub.app/cnn/world',
+                    category: '国际',
+                    country: 'us',
+                    icon: '🗽'
+                },
+                {
+                    id: 'guardian',
+                    name: 'The Guardian',
+                    rss: 'https://www.theguardian.com/world/rss',
+                    category: '国际',
+                    country: 'uk',
+                    icon: '📝'
+                },
+                {
+                    id: 'techcrunch',
+                    name: 'TechCrunch',
+                    rss: 'https://techcrunch.com/feed/',
+                    category: '科技',
+                    country: 'us',
+                    icon: '🚀'
+                },
+                {
+                    id: 'wired',
+                    name: 'Wired',
+                    rss: 'https://www.wired.com/feed/rss',
+                    category: '科技',
+                    country: 'us',
+                    icon: '⚡'
+                }
+            ];
+
+            const CATEGORIES = ['全部', '国内', '国际', '科技', '财经', '体育', '娱乐', '综合'];
+            const CACHE_KEY = 'newshub_news_cache';
+            const CACHE_TIME_KEY = 'newshub_cache_time';
+            const CACHE_DURATION = 15 * 60 * 1000;
+            const REFRESH_COOLDOWN = 3 * 60 * 1000;
+            const AUTO_REFRESH_INTERVAL = 20 * 60 * 1000;
+            const RSS2JSON_API = 'https://api.rss2json.com/v1/api.json?rss_url=';
+
+            let allNews = [];
+            let currentView = 'category';
+            let activeTab = '全部';
+            let searchQuery = '';
+            let isLoading = false;
+            let lastRefreshTime = null;
+            let refreshCooldownUntil = null;
+
+            const $newsGrid = document.getElementById('newsGrid');
+            const $tabsContainer = document.getElementById('tabsContainer');
+            const $searchInput = document.getElementById('searchInput');
+            const $updateDot = document.getElementById('updateDot');
+            const $updateText = document.getElementById('updateText');
+            const $refreshBtn = document.getElementById('refreshBtn');
+            const $scrollTopBtn = document.getElementById('scrollTopBtn');
+            const $toast = document.getElementById('toast');
+            const $statTotal = document.getElementById('statTotal');
+            const $statSources = document.getElementById('statSources');
+            const $statTime = document.getElementById('statTime');
+
+            function formatRelativeTime(date) {
+                if (!date) return '未知时间';
+                const now = new Date();
+                const diff = now - date;
+                const seconds = Math.floor(diff / 1000);
+                const minutes = Math.floor(seconds / 60);
+                const hours = Math.floor(minutes / 60);
+                const days = Math.floor(hours / 24);
+
+                if (seconds < 60) return '刚刚';
+                if (minutes < 60) return `${minutes}分钟前`;
+                if (hours < 24) return `${hours}小时前`;
+                if (days < 7) return `${days}天前`;
+                return date.toLocaleDateString('zh-CN', { month: 'short', day: 'numeric' });
+            }
+
+            function formatFullTime(date) {
+                if (!date) return '';
+                return date.toLocaleString('zh-CN', { month: 'short', day: 'numeric', hour: '2-digit',
+                    minute: '2-digit' });
+            }
+
+            function escapeHTML(str) {
+                const div = document.createElement('div');
+                div.textContent = str;
+                return div.innerHTML;
+            }
+
+            function truncateText(text, maxLen = 120) {
+                if (!text) return '';
+                return text.length > maxLen ? text.slice(0, maxLen) + '...' : text;
+            }
+
+            function showToast(msg, duration = 2000) {
+                $toast.textContent = msg;
+                $toast.classList.add('show');
+                clearTimeout($toast._timeout);
+                $toast._timeout = setTimeout(() => $toast.classList.remove('show'), duration);
+            }
+
+            async function fetchRSSSource(source) {
+                const encodedUrl = encodeURIComponent(source.rss);
+                const apiUrl = RSS2JSON_API + encodedUrl;
+
+                try {
+                    const controller = new AbortController();
+                    const timeout = setTimeout(() => controller.abort(), 12000);
+                    const resp = await fetch(apiUrl, { signal: controller.signal });
+                    clearTimeout(timeout);
+
+                    if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+                    const data = await resp.json();
+
+                    if (data.status !== 'ok' || !data.items) {
+                        throw new Error('Invalid response');
+                    }
+
+                    return data.items.map(item => ({
+                        id: generateItemId(source.id, item.link || item.guid || item.title),
+                        title: item.title || '无标题',
+                        description: truncateText(stripHTML(item.description || ''), 150),
+                        link: item.link || '#',
+                        pubDate: item.pubDate ? new Date(item.pubDate) : new Date(),
+                        sourceId: source.id,
+                        sourceName: source.name,
+                        sourceIcon: source.icon,
+                        category: source.category,
+                        country: source.country,
+                        thumbnail: item.thumbnail || item.enclosure?.link || extractImage(item.description) ||
+                            null,
+                    }));
+                } catch (err) {
+                    console.warn(`获取 ${source.name} 失败:`, err.message);
+                    if (source.altRss) {
+                        try {
+                            const altUrl = RSS2JSON_API + encodeURIComponent(source.altRss);
+                            const resp = await fetch(altUrl);
+                            const data = await resp.json();
+                            if (data.status === 'ok' && data.items) {
+                                return data.items.map(item => ({
+                                    id: generateItemId(source.id, item.link || item.guid || item
+                                        .title),
+                                    title: item.title || '无标题',
+                                    description: truncateText(stripHTML(item.description || ''),
+                                        150),
+                                    link: item.link || '#',
+                                    pubDate: item.pubDate ? new Date(item.pubDate) : new Date(),
+                                    sourceId: source.id,
+                                    sourceName: source.name,
+                                    sourceIcon: source.icon,
+                                    category: source.category,
+                                    country: source.country,
+                                    thumbnail: item.thumbnail || null,
+                                }));
+                            }
+                        } catch (e2) {
+                            console.warn(`备用源也失败: ${source.name}`);
+                        }
+                    }
+                    return [];
+                }
+            }
+
+            function generateItemId(sourceId, link) {
+                return `${sourceId}_${hashString(link || Math.random().toString())}`;
+            }
+
+            function hashString(str) {
+                let hash = 0;
+                for (let i = 0; i < str.length; i++) {
+                    const char = str.charCodeAt(i);
+                    hash = ((hash << 5) - hash) + char;
+                    hash |= 0;
+                }
+                return Math.abs(hash).toString(36);
+            }
+
+            function stripHTML(html) {
+                if (!html) return '';
+                const div = document.createElement('div');
+                div.innerHTML = html;
+                return div.textContent || div.innerText || '';
+            }
+
+            function extractImage(html) {
+                if (!html) return null;
+                const match = html.match(/<img[^>]+src=["']([^"']+)["']/i);
+                return match ? match[1] : null;
+            }
+
+            async function fetchAllNews(showLoading = true) {
+                if (isLoading) return;
+                isLoading = true;
+
+                if (showLoading) {
+                    renderSkeletons();
+                    $updateText.textContent = '更新中...';
+                    $updateDot.classList.add('stale');
+                }
+
+                const promises = RSS_SOURCES.map(source => fetchRSSSource(source));
+                const results = await Promise.allSettled(promises);
+
+                const allFetchedNews = [];
+                results.forEach((result, index) => {
+                    if (result.status === 'fulfilled' && result.value.length > 0) {
+                        allFetchedNews.push(...result.value);
+                    } else {
+                        console.warn(`源 ${RSS_SOURCES[index].name} 无数据`);
+                    }
+                });
+
+                const seen = new Set();
+                const uniqueNews = [];
+                for (const item of allFetchedNews) {
+                    if (!seen.has(item.id)) {
+                        seen.add(item.id);
+                        uniqueNews.push(item);
+                    }
+                }
+
+                uniqueNews.sort((a, b) => b.pubDate - a.pubDate);
+
+                allNews = uniqueNews;
+                lastRefreshTime = new Date();
+                refreshCooldownUntil = new Date(Date.now() + REFRESH_COOLDOWN);
+
+                saveCache(uniqueNews, lastRefreshTime);
+
+                updateUI();
+                isLoading = false;
+                updateRefreshIndicator();
+                showToast(`✅ 已更新 ${uniqueNews.length} 条新闻`);
+            }
+
+            function saveCache(news, time) {
+                try {
+                    const cacheData = {
+                        news: news.map(n => ({ ...n, pubDate: n.pubDate.toISOString() })),
+                        time: time.toISOString(),
+                    };
+                    localStorage.setItem(CACHE_KEY, JSON.stringify(cacheData));
+                    localStorage.setItem(CACHE_TIME_KEY, time.toISOString());
+                } catch (e) {
+                    console.warn('缓存保存失败');
+                }
+            }
+
+            function loadCache() {
+                try {
+                    const cached = localStorage.getItem(CACHE_KEY);
+                    const cachedTime = localStorage.getItem(CACHE_TIME_KEY);
+                    if (cached && cachedTime) {
+                        const data = JSON.parse(cached);
+                        const news = data.news.map(n => ({ ...n, pubDate: new Date(n.pubDate) }));
+                        const time = new Date(cachedTime);
+                        return { news, time };
+                    }
+                } catch (e) {
+                    console.warn('缓存读取失败');
+                }
+                return null;
+            }
+
+            function getCacheAge() {
+                const cachedTime = localStorage.getItem(CACHE_TIME_KEY);
+                if (!cachedTime) return Infinity;
+                return Date.now() - new Date(cachedTime).getTime();
+            }
+
+            function renderSkeletons() {
+                const count = window.innerWidth <= 640 ? 4 : window.innerWidth <= 1024 ? 6 : 9;
+                let html = '';
+                for (let i = 0; i < count; i++) {
+                    html += `
+                        <div class="skeleton-card">
+                            <div class="skeleton-line short"></div>
+                            <div class="skeleton-line long"></div>
+                            <div class="skeleton-line medium"></div>
+                            <div class="skeleton-line long" style="height:10px;"></div>
+                        </div>`;
+                }
+                $newsGrid.innerHTML = html;
+            }
+
+            function getFilteredNews() {
+                let filtered = [...allNews];
+
+                if (activeTab !== '全部') {
+                    if (currentView === 'category') {
+                        filtered = filtered.filter(n => n.category === activeTab);
+                    } else {
+                        filtered = filtered.filter(n => n.sourceName === activeTab);
+                    }
+                }
+
+                if (searchQuery.trim()) {
+                    const q = searchQuery.trim().toLowerCase();
+                    filtered = filtered.filter(n =>
+                        n.title.toLowerCase().includes(q) ||
+                        n.sourceName.toLowerCase().includes(q) ||
+                        n.description.toLowerCase().includes(q) ||
+                        n.category.toLowerCase().includes(q)
+                    );
+                }
+
+                return filtered;
+            }
+
+            function renderNewsCards(newsList) {
+                if (newsList.length === 0) {
+                    $newsGrid.innerHTML = `
+                        <div class="empty-state">
+                            <div class="icon">📭</div>
+                            <p>暂无匹配的新闻</p>
+                            <button class="btn btn-primary" onclick="resetAll()">查看全部新闻</button>
+                        </div>`;
+                    return;
+                }
+
+                let html = '';
+                for (const item of newsList) {
+                    const timeStr = formatRelativeTime(item.pubDate);
+                    const fullTimeStr = formatFullTime(item.pubDate);
+                    const thumbnailHTML = item.thumbnail ?
+                        `<img src="${escapeHTML(item.thumbnail)}" alt="" class="card-img" loading="lazy" onerror="this.style.display='none';">` :
+                        '';
+
+                    html += `
+                        <article class="news-card" onclick="window.open('${escapeHTML(item.link)}', '_blank', 'noopener')" title="${escapeHTML(item.title)}&#10;来源: ${escapeHTML(item.sourceName)}&#10;时间: ${fullTimeStr}">
+                            ${thumbnailHTML}
+                            <div class="card-meta">
+                                <span class="source-badge">
+                                    <span class="source-dot"></span>
+                                    ${escapeHTML(item.sourceIcon)} ${escapeHTML(item.sourceName)}
+                                </span>
+                                <span class="card-time" title="${fullTimeStr}">🕐 ${timeStr}</span>
+                            </div>
+                            <h3 class="card-title">${escapeHTML(item.title)}</h3>
+                            ${item.description ? `<p class="card-desc">${escapeHTML(item.description)}</p>` : ''}
+                            <span class="card-category-tag">${escapeHTML(item.category)}</span>
+                        </article>`;
+                }
+                $newsGrid.innerHTML = html;
+            }
+
+            function renderTabs() {
+                let tabs = [];
+                if (currentView === 'category') {
+                    tabs = CATEGORIES;
+                } else {
+                    const sourceSet = new Set(allNews.map(n => n.sourceName));
+                    tabs = ['全部', ...Array.from(sourceSet).sort()];
+                }
+
+                const counts = {};
+                if (currentView === 'category') {
+                    for (const cat of CATEGORIES) {
+                        counts[cat] = cat === '全部' ? allNews.length : allNews.filter(n => n.category === cat)
+                            .length;
+                    }
+                } else {
+                    counts['全部'] = allNews.length;
+                    for (const src of tabs) {
+                        if (src !== '全部') {
+                            counts[src] = allNews.filter(n => n.sourceName === src).length;
+                        }
+                    }
+                }
+
+                let html = '';
+                for (const tab of tabs) {
+                    const isActive = tab === activeTab;
+                    const count = counts[tab] || 0;
+                    html += `
+                        <button class="tab-chip${isActive ? ' active' : ''}" data-tab="${escapeHTML(tab)}" onclick="selectTab('${escapeHTML(tab)}')">
+                            ${escapeHTML(tab)}<span class="count">(${count})</span>
+                        </button>`;
+                }
+                $tabsContainer.innerHTML = html;
+            }
+
+            function updateStats(filteredNews) {
+                const news = filteredNews || getFilteredNews();
+                $statTotal.textContent = news.length;
+                const sources = new Set(news.map(n => n.sourceName));
+                $statSources.textContent = sources.size;
+                if (lastRefreshTime) {
+                    $statTime.textContent = formatRelativeTime(lastRefreshTime);
+                } else {
+                    $statTime.textContent = '--';
+                }
+            }
+
+            function updateRefreshIndicator() {
+                if (!lastRefreshTime) {
+                    $updateText.textContent = '等待首次加载...';
+                    $updateDot.classList.add('stale');
+                    return;
+                }
+                const age = Date.now() - lastRefreshTime.getTime();
+                const minutes = Math.floor(age / 60000);
+                if (minutes < 1) {
+                    $updateText.textContent = '刚刚更新';
+                    $updateDot.classList.remove('stale');
+                } else if (minutes < 30) {
+                    $updateText.textContent = `${minutes}分钟前更新`;
+                    $updateDot.classList.remove('stale');
+                } else {
+                    $updateText.textContent = `${Math.floor(minutes/60)}小时前更新`;
+                    $updateDot.classList.add('stale');
+                }
+            }
+
+            function updateUI() {
+                const filtered = getFilteredNews();
+                renderTabs();
+                renderNewsCards(filtered);
+                updateStats(filtered);
+                updateRefreshIndicator();
+            }
+
+            function switchView(view) {
+                currentView = view;
+                activeTab = '全部';
+                searchQuery = '';
+                $searchInput.value = '';
+
+                document.querySelectorAll('.view-toggle-btn').forEach(btn => {
+                    btn.classList.toggle('active', btn.dataset.view === view);
+                });
+
+                updateUI();
+            }
+
+            function selectTab(tab) {
+                activeTab = tab;
+                updateUI();
+                const activeBtn = document.querySelector(`.tab-chip[data-tab="${CSS.escape(tab)}"]`);
+                if (activeBtn) {
+                    activeBtn.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
+                }
+            }
+
+            function onSearch() {
+                searchQuery = $searchInput.value;
+                updateUI();
+            }
+
+            function resetAll() {
+                currentView = 'category';
+                activeTab = '全部';
+                searchQuery = '';
+                $searchInput.value = '';
+                document.querySelectorAll('.view-toggle-btn').forEach(btn => {
+                    btn.classList.toggle('active', btn.dataset.view === 'category');
+                });
+                updateUI();
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+            }
+
+            async function refreshNews() {
+                if (isLoading) {
+                    showToast('⏳ 正在更新中，请稍候...');
+                    return;
+                }
+                if (refreshCooldownUntil && Date.now() < refreshCooldownUntil) {
+                    const remaining = Math.ceil((refreshCooldownUntil - Date.now()) / 1000);
+                    showToast(`⏰ 请${remaining}秒后再刷新`);
+                    return;
+                }
+                await fetchAllNews(true);
+            }
+
+            function toggleTheme() {
+                const body = document.body;
+                const current = body.getAttribute('data-theme');
+                const next = current === 'dark' ? 'light' : 'dark';
+                body.setAttribute('data-theme', next);
+                try {
+                    localStorage.setItem('newshub_theme', next);
+                } catch (e) {}
+                showToast(next === 'dark' ? '🌙 暗色模式' : '☀️ 亮色模式');
+            }
+
+            async function init() {
+                try {
+                    const savedTheme = localStorage.getItem('newshub_theme');
+                    if (savedTheme === 'dark') {
+                        document.body.setAttribute('data-theme', 'dark');
+                    }
+                } catch (e) {}
+
+                const cache = loadCache();
+                if (cache && cache.news.length > 0) {
+                    allNews = cache.news;
+                    lastRefreshTime = cache.time;
+                    console.log(`📦 从缓存加载了 ${allNews.length} 条新闻`);
+                    updateUI();
+                    const cacheAge = getCacheAge();
+                    if (cacheAge > CACHE_DURATION) {
+                        console.log('🔄 缓存已过期，后台更新...');
+                        fetchAllNews(false);
+                    } else {
+                        updateRefreshIndicator();
+                    }
+                } else {
+                    renderSkeletons();
+                    updateRefreshIndicator();
+                    await fetchAllNews(true);
+                }
+
+                setInterval(() => {
+                    const cacheAge = getCacheAge();
+                    if (cacheAge > AUTO_REFRESH_INTERVAL && !isLoading) {
+                        console.log('🔄 自动刷新...');
+                        fetchAllNews(false);
+                    }
+                    updateRefreshIndicator();
+                }, 60000);
+
+                window.addEventListener('scroll', () => {
+                    const scrollY = window.scrollY || window.pageYOffset;
+                    if (scrollY > 400) {
+                        $scrollTopBtn.classList.add('visible');
+                    } else {
+                        $scrollTopBtn.classList.remove('visible');
+                    }
+                }, { passive: true });
+
+                setInterval(() => {
+                    updateRefreshIndicator();
+                    if (allNews.length > 0 && !isLoading) {
+                        updateStats(getFilteredNews());
+                    }
+                }, 30000);
+            }
+
+            window.switchView = switchView;
+            window.selectTab = selectTab;
+            window.onSearch = onSearch;
+            window.refreshNews = refreshNews;
+            window.toggleTheme = toggleTheme;
+            window.resetAll = resetAll;
+
+            init().catch(err => {
+                console.error('初始化失败:', err);
+                $newsGrid.innerHTML = `
+                    <div class="empty-state">
+                        <div class="icon">⚠️</div>
+                        <p>加载失败，请检查网络连接后刷新</p>
+                        <button class="btn btn-primary" onclick="refreshNews()">🔄 重试</button>
+                    </div>`;
+                $updateText.textContent = '加载失败';
+                $updateDot.classList.add('stale');
+            });
+        })();
+    </script>
+</body>
+</html>
