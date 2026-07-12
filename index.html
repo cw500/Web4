@@ -1,0 +1,404 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>NewsHub - 全球新闻聚合</title>
+    <style>
+        :root {
+            --bg: #f5f6f8;
+            --card-bg: #ffffff;
+            --text: #1a1a2e;
+            --text-secondary: #5a5a7a;
+            --text-tertiary: #8888a0;
+            --accent: #2563eb;
+            --accent-light: #e8f0fe;
+            --border: #e8eaef;
+            --shadow: 0 1px 3px rgba(0,0,0,0.04),0 1px 2px rgba(0,0,0,0.06);
+            --shadow-hover: 0 10px 25px rgba(0,0,0,0.08),0 4px 10px rgba(0,0,0,0.05);
+            --radius: 16px;
+            --radius-sm: 10px;
+            --tag-bg: #f0f2f5;
+            --tag-text: #4a4a6a;
+            --skeleton: #e8eaef;
+            --header-bg: rgba(255,255,255,0.85);
+        }
+        [data-theme="dark"] {
+            --bg: #0f0f1a;
+            --card-bg: #1a1a2e;
+            --text: #e8e8f0;
+            --text-secondary: #b0b0c8;
+            --text-tertiary: #7a7a96;
+            --accent: #5b9cf5;
+            --accent-light: #1a2540;
+            --border: #2a2a40;
+            --shadow: 0 1px 3px rgba(0,0,0,0.2);
+            --shadow-hover: 0 10px 25px rgba(0,0,0,0.3);
+            --tag-bg: #252540;
+            --tag-text: #c0c0d8;
+            --skeleton: #252540;
+            --header-bg: rgba(15,15,26,0.85);
+        }
+        * { margin:0; padding:0; box-sizing:border-box; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Microsoft YaHei', sans-serif;
+            background: var(--bg); color: var(--text); line-height:1.6; transition: background 0.3s, color 0.3s;
+            min-height:100vh;
+        }
+        .header {
+            position:sticky; top:0; z-index:100; background:var(--header-bg);
+            backdrop-filter:blur(20px); -webkit-backdrop-filter:blur(20px);
+            border-bottom:1px solid var(--border); padding:0 20px;
+        }
+        .header-inner {
+            max-width:1300px; margin:0 auto; display:flex; align-items:center; justify-content:space-between;
+            height:60px; gap:16px;
+        }
+        .logo { display:flex; align-items:center; gap:8px; font-weight:800; font-size:1.35rem; color:var(--text); text-decoration:none; }
+        .logo-icon { width:36px; height:36px; border-radius:10px; background:var(--accent); display:flex; align-items:center; justify-content:center; color:#fff; font-weight:900; }
+        .header-actions { display:flex; align-items:center; gap:8px; }
+        .btn {
+            display:inline-flex; align-items:center; gap:6px; padding:8px 16px; border-radius:20px;
+            border:1px solid var(--border); background:var(--card-bg); color:var(--text);
+            cursor:pointer; font-size:0.88rem; font-weight:500; transition:0.2s; white-space:nowrap;
+        }
+        .btn:hover { background:var(--accent-light); border-color:var(--accent); color:var(--accent); }
+        .btn-primary { background:var(--accent); color:#fff; border-color:var(--accent); font-weight:600; }
+        .btn-primary:hover { background:#1d4ed8; border-color:#1d4ed8; }
+        .btn-icon { width:38px; height:38px; padding:0; border-radius:50%; justify-content:center; font-size:1.1rem; }
+        .update-indicator { display:flex; align-items:center; gap:6px; font-size:0.78rem; color:var(--text-tertiary); }
+        .update-dot { width:7px; height:7px; border-radius:50%; background:#22c55e; animation:pulse-dot 2s infinite; }
+        .update-dot.stale { background:#f59e0b; animation:none; }
+        @keyframes pulse-dot { 0%,100% { box-shadow:0 0 0 0 rgba(34,197,94,0.5); } 50% { box-shadow:0 0 0 8px rgba(34,197,94,0); } }
+
+        .main-container { max-width:1300px; margin:0 auto; padding:16px 20px 40px; }
+        .classification-bar { display:flex; flex-wrap:wrap; align-items:center; gap:10px; margin-bottom:16px; }
+        .view-toggle { display:flex; background:var(--card-bg); border-radius:22px; padding:3px; border:1px solid var(--border); }
+        .view-toggle-btn { padding:7px 16px; border-radius:19px; border:none; background:transparent; cursor:pointer; font-size:0.84rem; color:var(--text-secondary); transition:0.2s; }
+        .view-toggle-btn.active { background:var(--accent); color:#fff; font-weight:600; }
+        .tabs-scroll { flex:1; overflow-x:auto; display:flex; gap:6px; scrollbar-width:none; -ms-overflow-style:none; }
+        .tabs-scroll::-webkit-scrollbar { display:none; }
+        .tab-chip {
+            padding:7px 14px; border-radius:18px; border:1px solid var(--border); background:var(--card-bg);
+            cursor:pointer; font-size:0.82rem; font-weight:500; color:var(--text-secondary);
+            white-space:nowrap; transition:0.2s; flex-shrink:0;
+        }
+        .tab-chip.active { background:var(--accent); color:#fff; border-color:var(--accent); font-weight:600; }
+        .search-wrap { position:relative; width:200px; flex-shrink:0; }
+        .search-input { width:100%; padding:8px 14px 8px 36px; border-radius:20px; border:1px solid var(--border); background:var(--card-bg); color:var(--text); font-size:0.84rem; outline:none; }
+        .search-input:focus { border-color:var(--accent); width:240px; }
+        .search-icon { position:absolute; left:12px; top:50%; transform:translateY(-50%); color:var(--text-tertiary); }
+        .stats-bar { display:flex; gap:12px; margin-bottom:14px; font-size:0.78rem; color:var(--text-tertiary); }
+        .stats-bar .highlight { color:var(--accent); font-weight:600; }
+
+        .news-grid { display:grid; grid-template-columns:repeat(3,1fr); gap:16px; }
+        @media(max-width:1024px) { .news-grid { grid-template-columns:repeat(2,1fr); } }
+        @media(max-width:640px) { .news-grid { grid-template-columns:1fr; } }
+
+        .news-card {
+            background:var(--card-bg); border-radius:var(--radius); padding:18px; border:1px solid var(--border);
+            cursor:pointer; transition:0.2s; box-shadow:var(--shadow); display:flex; flex-direction:column; gap:10px;
+        }
+        .news-card:hover { box-shadow:var(--shadow-hover); transform:translateY(-2px); }
+        .card-meta { display:flex; align-items:center; gap:8px; font-size:0.75rem; color:var(--text-tertiary); flex-wrap:wrap; }
+        .source-badge { display:inline-flex; align-items:center; gap:5px; font-weight:600; color:var(--accent); background:var(--accent-light); padding:3px 10px; border-radius:12px; font-size:0.76rem; }
+        .card-title { font-weight:700; font-size:0.98rem; line-height:1.5; display:-webkit-box; -webkit-line-clamp:3; -webkit-box-orient:vertical; overflow:hidden; }
+        .card-desc { font-size:0.8rem; color:var(--text-secondary); display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden; }
+        .card-category-tag { display:inline-block; font-size:0.7rem; padding:2px 8px; border-radius:10px; background:var(--tag-bg); color:var(--tag-text); align-self:flex-start; }
+
+        .skeleton-card { background:var(--card-bg); border-radius:var(--radius); padding:18px; border:1px solid var(--border); display:flex; flex-direction:column; gap:12px; min-height:160px; }
+        .skeleton-line { height:14px; border-radius:6px; background:var(--skeleton); animation:shimmer 1.5s infinite; background:linear-gradient(90deg, var(--skeleton) 25%, #e0e0e0 50%, var(--skeleton) 75%); background-size:200% 100%; }
+        @keyframes shimmer { 0% { background-position:200% 0; } 100% { background-position:-200% 0; } }
+        .empty-state { text-align:center; padding:60px 20px; color:var(--text-tertiary); grid-column:1/-1; }
+        .scroll-top { position:fixed; bottom:30px; right:30px; width:44px; height:44px; border-radius:50%; background:var(--card-bg); border:1px solid var(--border); cursor:pointer; font-size:1.2rem; display:flex; align-items:center; justify-content:center; box-shadow:var(--shadow); opacity:0; pointer-events:none; transition:0.2s; z-index:99; }
+        .scroll-top.visible { opacity:1; pointer-events:auto; }
+        .footer { text-align:center; padding:20px; color:var(--text-tertiary); font-size:0.75rem; border-top:1px solid var(--border); margin-top:20px; }
+        .toast { position:fixed; bottom:30px; left:50%; transform:translateX(-50%) translateY(100px); background:#1a1a2e; color:#fff; padding:10px 22px; border-radius:22px; font-size:0.84rem; z-index:200; transition:0.35s; white-space:nowrap; }
+        .toast.show { transform:translateX(-50%) translateY(0); }
+    </style>
+</head>
+<body data-theme="light">
+    <header class="header">
+        <div class="header-inner">
+            <a href="#" class="logo" onclick="resetAll();return false;"><span class="logo-icon">N</span> NewsHub</a>
+            <div class="header-actions">
+                <span class="update-indicator"><span class="update-dot" id="updateDot"></span><span id="updateText">加载中...</span></span>
+                <button class="btn btn-icon" onclick="toggleTheme()">🌓</button>
+                <button class="btn btn-primary" onclick="refreshNews()">🔄 刷新</button>
+            </div>
+        </div>
+    </header>
+
+    <div class="main-container">
+        <div class="classification-bar">
+            <div class="view-toggle">
+                <button class="view-toggle-btn active" data-view="category" onclick="switchView('category')">📂 按类别</button>
+                <button class="view-toggle-btn" data-view="source" onclick="switchView('source')">🏷️ 按来源</button>
+            </div>
+            <div class="tabs-scroll" id="tabsContainer"></div>
+            <div class="search-wrap">
+                <span class="search-icon">🔍</span>
+                <input type="text" class="search-input" id="searchInput" placeholder="搜索新闻..." oninput="onSearch()">
+            </div>
+        </div>
+        <div class="stats-bar">
+            <span>共 <span class="highlight" id="statTotal">0</span> 条新闻</span>
+            <span>·</span>
+            <span>覆盖 <span class="highlight" id="statSources">0</span> 个来源</span>
+            <span>·</span>
+            <span>更新于 <span class="highlight" id="statTime">--</span></span>
+        </div>
+        <div class="news-grid" id="newsGrid"></div>
+    </div>
+
+    <button class="scroll-top" id="scrollTopBtn" onclick="window.scrollTo({top:0,behavior:'smooth'})">↑</button>
+    <div class="toast" id="toast"></div>
+    <div class="footer">NewsHub · 全球新闻聚合 · 无广告 · 纯静态</div>
+
+    <script>
+        (function() {
+            // 全新高可用RSS源（直接使用官方RSS，经测试rss2json可解析）
+            const RSS_SOURCES = [
+                { id:'bbc', name:'BBC News', rss:'https://feeds.bbci.co.uk/news/world/rss.xml', category:'国际', icon:'🌍' },
+                { id:'guardian', name:'The Guardian', rss:'https://www.theguardian.com/world/rss', category:'国际', icon:'📝' },
+                { id:'techcrunch', name:'TechCrunch', rss:'https://techcrunch.com/feed/', category:'科技', icon:'🚀' },
+                { id:'wired', name:'Wired', rss:'https://www.wired.com/feed/rss', category:'科技', icon:'⚡' },
+                { id:'36kr', name:'36氪', rss:'https://36kr.com/feed', category:'科技', icon:'💻' },
+                { id:'xinhua_en', name:'新华网(英文)', rss:'http://www.xinhuanet.com/rss/english/index.xml', category:'国内', icon:'📰' },
+                { id:'people', name:'人民网', rss:'http://www.people.com.cn/rss/politics.xml', category:'国内', icon:'📋' },
+                { id:'cls', name:'财联社', rss:'https://www.cls.cn/rss', category:'财经', icon:'📈' },
+                { id:'ithome', name:'IT之家', rss:'https://www.ithome.com/rss/', category:'科技', icon:'🖥️' },
+                { id:'huxiu', name:'虎嗅', rss:'https://www.huxiu.com/rss/0.xml', category:'科技', icon:'🐯' },
+                { id:'thepaper', name:'澎湃新闻', rss:'https://www.thepaper.cn/rss_www.xml', category:'综合', icon:'📡' }
+            ];
+
+            const CATEGORIES = ['全部','国内','国际','科技','财经','综合'];
+            const CACHE_KEY = 'newshub_news_v2';
+            const CACHE_TIME_KEY = 'newshub_cache_time_v2';
+            const RSS2JSON_API = 'https://api.rss2json.com/v1/api.json?rss_url=';
+
+            let allNews = [];
+            let currentView = 'category';
+            let activeTab = '全部';
+            let searchQuery = '';
+            let isLoading = false;
+            let lastRefreshTime = null;
+
+            const $ = id => document.getElementById(id);
+            const newsGrid = $('newsGrid');
+            const tabsContainer = $('tabsContainer');
+            const searchInput = $('searchInput');
+            const updateDot = $('updateDot');
+            const updateText = $('updateText');
+            const statTotal = $('statTotal');
+            const statSources = $('statSources');
+            const statTime = $('statTime');
+            const toast = $('toast');
+            const scrollTopBtn = $('scrollTopBtn');
+
+            function escapeHTML(str) {
+                const div = document.createElement('div');
+                div.textContent = str;
+                return div.innerHTML;
+            }
+
+            function formatRelativeTime(date) {
+                if (!date) return '';
+                const diff = Date.now() - date.getTime();
+                const mins = Math.floor(diff / 60000);
+                if (mins < 1) return '刚刚';
+                if (mins < 60) return `${mins}分钟前`;
+                const hours = Math.floor(mins / 60);
+                if (hours < 24) return `${hours}小时前`;
+                return `${Math.floor(hours / 24)}天前`;
+            }
+
+            async function fetchSource(source) {
+                const url = RSS2JSON_API + encodeURIComponent(source.rss);
+                try {
+                    const resp = await fetch(url);
+                    if (!resp.ok) throw new Error('HTTP ' + resp.status);
+                    const data = await resp.json();
+                    if (data.status !== 'ok' || !data.items) return [];
+                    return data.items.map(item => ({
+                        id: source.id + '_' + (item.link || item.guid || Math.random()).replace(/\W/g,''),
+                        title: item.title,
+                        description: (item.description || '').replace(/<[^>]*>/g,'').substring(0,150),
+                        link: item.link,
+                        pubDate: new Date(item.pubDate || Date.now()),
+                        sourceName: source.name,
+                        sourceIcon: source.icon,
+                        category: source.category,
+                        thumbnail: item.thumbnail || null
+                    }));
+                } catch (e) {
+                    console.warn(`${source.name} 获取失败`, e.message);
+                    return [];
+                }
+            }
+
+            async function fetchAllNews(showLoading = true) {
+                if (isLoading) return;
+                isLoading = true;
+                if (showLoading) {
+                    newsGrid.innerHTML = Array(6).fill(0).map(() => '<div class="skeleton-card"><div class="skeleton-line" style="width:40%"></div><div class="skeleton-line"></div><div class="skeleton-line" style="width:70%"></div></div>').join('');
+                    updateText.textContent = '更新中...';
+                    updateDot.classList.add('stale');
+                }
+                const results = await Promise.allSettled(RSS_SOURCES.map(fetchSource));
+                const all = [];
+                results.forEach((r, i) => {
+                    if (r.status === 'fulfilled') all.push(...r.value);
+                });
+                // 去重
+                const seen = new Set();
+                allNews = all.filter(item => !seen.has(item.id) && seen.add(item.id))
+                             .sort((a,b) => b.pubDate - a.pubDate);
+                lastRefreshTime = new Date();
+                localStorage.setItem(CACHE_KEY, JSON.stringify(allNews.map(n => ({...n, pubDate: n.pubDate.toISOString()}))));
+                localStorage.setItem(CACHE_TIME_KEY, lastRefreshTime.toISOString());
+                updateUI();
+                isLoading = false;
+                showToast(`✅ 已更新 ${allNews.length} 条新闻`);
+            }
+
+            function showToast(msg) {
+                toast.textContent = msg;
+                toast.classList.add('show');
+                clearTimeout(toast._t);
+                toast._t = setTimeout(() => toast.classList.remove('show'), 2000);
+            }
+
+            function getFilteredNews() {
+                let filtered = [...allNews];
+                if (activeTab !== '全部') {
+                    if (currentView === 'category') filtered = filtered.filter(n => n.category === activeTab);
+                    else filtered = filtered.filter(n => n.sourceName === activeTab);
+                }
+                const q = searchQuery.trim().toLowerCase();
+                if (q) filtered = filtered.filter(n => n.title.toLowerCase().includes(q) || n.sourceName.toLowerCase().includes(q) || n.category.toLowerCase().includes(q));
+                return filtered;
+            }
+
+            function renderTabs() {
+                let tabs = currentView === 'category' ? CATEGORIES : ['全部', ...new Set(allNews.map(n => n.sourceName))].sort();
+                const counts = {};
+                tabs.forEach(t => {
+                    counts[t] = t === '全部' ? allNews.length : (currentView === 'category' ? allNews.filter(n => n.category === t).length : allNews.filter(n => n.sourceName === t).length);
+                });
+                tabsContainer.innerHTML = tabs.map(t => 
+                    `<button class="tab-chip${t === activeTab ? ' active' : ''}" data-tab="${escapeHTML(t)}" onclick="selectTab('${t.replace(/'/g, "\\'")}')">${escapeHTML(t)} (${counts[t]||0})</button>`
+                ).join('');
+            }
+
+            function renderCards(newsList) {
+                if (!newsList.length) {
+                    newsGrid.innerHTML = '<div class="empty-state"><p>📭 暂无新闻</p></div>';
+                    return;
+                }
+                newsGrid.innerHTML = newsList.map(item => `
+                    <article class="news-card" onclick="window.open('${escapeHTML(item.link)}','_blank')">
+                        ${item.thumbnail ? `<img src="${escapeHTML(item.thumbnail)}" style="width:100%;height:140px;object-fit:cover;border-radius:10px;" onerror="this.remove()">` : ''}
+                        <div class="card-meta">
+                            <span class="source-badge">${item.sourceIcon} ${escapeHTML(item.sourceName)}</span>
+                            <span>🕐 ${formatRelativeTime(item.pubDate)}</span>
+                        </div>
+                        <h3 class="card-title">${escapeHTML(item.title)}</h3>
+                        <p class="card-desc">${escapeHTML(item.description || '')}</p>
+                        <span class="card-category-tag">${escapeHTML(item.category)}</span>
+                    </article>
+                `).join('');
+            }
+
+            function updateStats(filtered = getFilteredNews()) {
+                statTotal.textContent = filtered.length;
+                statSources.textContent = new Set(filtered.map(n => n.sourceName)).size;
+                statTime.textContent = lastRefreshTime ? formatRelativeTime(lastRefreshTime) : '--';
+                updateDot.classList.toggle('stale', lastRefreshTime && (Date.now() - lastRefreshTime) > 1800000);
+                updateText.textContent = lastRefreshTime ? (Date.now() - lastRefreshTime < 60000 ? '刚刚更新' : formatRelativeTime(lastRefreshTime) + '更新') : '加载中...';
+            }
+
+            function updateUI() {
+                renderTabs();
+                renderCards(getFilteredNews());
+                updateStats();
+            }
+
+            window.switchView = function(view) {
+                currentView = view;
+                activeTab = '全部';
+                searchInput.value = '';
+                searchQuery = '';
+                document.querySelectorAll('.view-toggle-btn').forEach(b => b.classList.toggle('active', b.dataset.view === view));
+                updateUI();
+            };
+
+            window.selectTab = function(tab) {
+                activeTab = tab;
+                updateUI();
+                // 滚动到可见（不使用CSS.escape）
+                const btns = tabsContainer.querySelectorAll('.tab-chip');
+                btns.forEach(b => { if (b.textContent.startsWith(tab)) b.scrollIntoView({ inline:'center', block:'nearest' }); });
+            };
+
+            window.onSearch = function() {
+                searchQuery = searchInput.value;
+                updateUI();
+            };
+
+            window.resetAll = function() {
+                currentView = 'category';
+                activeTab = '全部';
+                searchQuery = '';
+                searchInput.value = '';
+                document.querySelectorAll('.view-toggle-btn').forEach(b => b.classList.toggle('active', b.dataset.view === 'category'));
+                updateUI();
+                window.scrollTo({top:0,behavior:'smooth'});
+            };
+
+            window.refreshNews = function() {
+                if (isLoading) return showToast('⏳ 更新中...');
+                fetchAllNews(true);
+            };
+
+            window.toggleTheme = function() {
+                const body = document.body;
+                const next = body.getAttribute('data-theme') === 'dark' ? 'light' : 'dark';
+                body.setAttribute('data-theme', next);
+                localStorage.setItem('newshub_theme', next);
+                showToast(next === 'dark' ? '🌙 暗色模式' : '☀️ 亮色模式');
+            };
+
+            // 滚动监听
+            window.addEventListener('scroll', () => {
+                scrollTopBtn.classList.toggle('visible', window.scrollY > 400);
+            }, { passive:true });
+
+            // 初始化
+            (async function init() {
+                const savedTheme = localStorage.getItem('newshub_theme');
+                if (savedTheme === 'dark') document.body.setAttribute('data-theme', 'dark');
+
+                const cached = localStorage.getItem(CACHE_KEY);
+                const cachedTime = localStorage.getItem(CACHE_TIME_KEY);
+                if (cached && cachedTime) {
+                    try {
+                        allNews = JSON.parse(cached).map(n => ({...n, pubDate: new Date(n.pubDate)}));
+                        lastRefreshTime = new Date(cachedTime);
+                        updateUI();
+                    } catch(e) {}
+                }
+                if (!allNews.length) {
+                    await fetchAllNews(true);
+                } else if (Date.now() - new Date(cachedTime).getTime() > 900000) {
+                    fetchAllNews(false); // 后台静默更新
+                }
+                setInterval(() => {
+                    if (!isLoading && lastRefreshTime && Date.now() - lastRefreshTime > 1200000) fetchAllNews(false);
+                    updateStats();
+                }, 60000);
+            })();
+        })();
+    </script>
+</body>
+</html>
