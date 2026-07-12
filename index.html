@@ -1,0 +1,247 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>P2P 点对点私密聊天室</title>
+  <style>
+    *{margin:0;padding:0;box-sizing:border-box;font-family:system-ui}
+    body{max-width:720px;margin:0 auto;background:#f5f7fa;color:#222;padding:12px}
+    .bar{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px}
+    input,button{padding:10px 12px;border-radius:8px;border:1px solid #ddd;font-size:14px}
+    button{background:#2563eb;color:white;border:none;cursor:pointer}
+    button.secondary{background:#6b7280}
+    .room-box{background:#fff;padding:10px;border-radius:8px;margin-bottom:10px;word-break:break-all}
+    #chatBox{height:60vh;overflow-y:auto;background:#fff;border-radius:8px;padding:12px;margin:12px 0;border:1px solid #eee}
+    .msg{margin:6px 0;max-width:80%;padding:8px 12px;border-radius:12px;line-height:1.4}
+    .self{background:#2563eb;color:#fff;margin-left:auto}
+    .peer{background:#e5e7eb;color:#111;margin-right:auto}
+    .tip{text-align:center;color:#888;font-size:12px;margin:8px 0}
+    #sendArea{display:flex;gap:8px}
+    #msgInput{flex:1}
+  </style>
+</head>
+<body>
+  <div class="bar">
+    <div>我的ID：<span id="myUid"></span></div>
+    <div>昵称：<span id="myName"></span></div>
+  </div>
+
+  <div class="room-box">
+    当前房间链接：<br>
+    <span id="roomLink" style="font-size:12px;word-break:break-all"></span>
+    <div class="bar" style="margin-top:8px">
+      <button id="copyLink">复制房间链接</button>
+      <button id="newRoom">新建房间</button>
+    </div>
+  </div>
+
+  <div id="status" class="tip">等待对方加入房间...</div>
+  <div id="chatBox"></div>
+
+  <div id="sendArea">
+    <input id="msgInput" placeholder="输入消息，回车发送" autocomplete="off"/>
+    <button id="sendBtn">发送</button>
+  </div>
+
+<script>
+// 公共免费STUN服务器（用于NAT打洞，建立P2P直连）
+const ICE_CONFIG = {
+  iceServers: [
+    { urls: 'stun:stun.l.google.com:19302' },
+    { urls: 'stun:stun1.l.google.com:19302' }
+  ]
+}
+
+// 随机生成ID与昵称工具
+function randomId(len = 12) {
+  const chars = 'abcdefghijklmnopqrstuvwxyz0123456789';
+  let s = '';
+  for(let i=0;i<len;i++) s += chars[Math.floor(Math.random()*chars.length)];
+  return s;
+}
+function randomNick(){
+  const prefix = ['星','风','雾','屿','森','晚','辰','序','浅','渡'];
+  const num = Math.floor(Math.random()*9999);
+  return prefix[Math.floor(Math.random()*prefix.length)] + num;
+}
+
+// 初始化本地用户身份（本地持久化，刷新不重置）
+let myUid, myName;
+if(localStorage.getItem('p2p_uid')){
+  myUid = localStorage.getItem('p2p_uid');
+  myName = localStorage.getItem('p2p_name');
+}else{
+  myUid = randomId();
+  myName = randomNick();
+  localStorage.setItem('p2p_uid', myUid);
+  localStorage.setItem('p2p_name', myName);
+}
+document.getElementById('myUid').textContent = myUid;
+document.getElementById('myName').textContent = myName;
+
+// 房间逻辑：URL hash作为房间标识，#room=xxx
+function getRoomId(){
+  const hash = location.hash.slice(1);
+  const params = new URLSearchParams(hash);
+  return params.get('room') || null;
+}
+function setRoomId(rid){
+  location.hash = `room=${rid}`;
+  renderRoomLink();
+}
+function renderRoomLink(){
+  const link = location.origin + location.pathname + location.hash;
+  document.getElementById('roomLink').textContent = link;
+}
+
+// 初始化房间
+let roomId = getRoomId();
+if(!roomId){
+  roomId = randomId(16);
+  setRoomId(roomId);
+}else{
+  renderRoomLink();
+}
+
+// P2P核心变量
+let peerConn, dataChannel, isInitiator = false;
+const chatBox = document.getElementById('chatBox');
+const statusEl = document.getElementById('status');
+
+// 渲染聊天消息
+function addMsg(text, isSelf = false){
+  const div = document.createElement('div');
+  div.className = isSelf ? 'msg self' : 'msg peer';
+  div.textContent = text;
+  chatBox.appendChild(div);
+  chatBox.scrollTop = chatBox.scrollHeight;
+}
+function addTip(text){
+  const div = document.createElement('div');
+  div.className = 'tip';
+  div.textContent = text;
+  chatBox.appendChild(div);
+  chatBox.scrollTop = chatBox.scrollHeight;
+}
+
+// 建立Peer连接
+async function createPeerConnection(){
+  peerConn = new RTCPeerConnection(ICE_CONFIG);
+  dataChannel = peerConn.createDataChannel('chat');
+  bindDataChannel(dataChannel);
+
+  // ICE候选收集，存入localStorage临时信令（简易信令靠本地存储+轮询，适合双人）
+  peerConn.onicecandidate = e=>{
+    if(e.candidate){
+      localStorage.setItem(`room_${roomId}_candidate_${myUid}`, JSON.stringify(e.candidate));
+    }
+  }
+
+  // 监听对方DataChannel（被动方）
+  peerConn.ondatachannel = e=>{
+    bindDataChannel(e.channel);
+  }
+
+  // 主动方发起Offer
+  if(isInitiator){
+    const offer = await peerConn.createOffer();
+    await peerConn.setLocalDescription(offer);
+    localStorage.setItem(`room_${roomId}_offer_${myUid}`, JSON.stringify(offer));
+    addTip('已发起连接邀约，等待对方应答...');
+  }
+}
+
+function bindDataChannel(dc){
+  dataChannel = dc;
+  dc.onopen = ()=>{
+    statusEl.textContent = '✅ 已建立点对点连接，可以聊天';
+    addTip('连接成功，私聊已加密直连');
+  }
+  dc.onmessage = e=>{
+    const obj = JSON.parse(e.data);
+    addMsg(`${obj.nick}：${obj.text}`, false);
+  }
+  dc.onclose = ()=>{
+    statusEl.textContent = '连接已断开，等待重连';
+    addTip('对方已离线或连接断开');
+  }
+}
+
+// 简易信令轮询：每隔1.2秒拉取房间Offer/Answer/Candidate
+function startSignalPoll(){
+  setInterval(async ()=>{
+    const offerKey = Object.keys(localStorage).find(k=>k.startsWith(`room_${roomId}_offer_`) && !k.includes(myUid));
+    const answerKey = Object.keys(localStorage).find(k=>k.startsWith(`room_${roomId}_answer_`) && !k.includes(myUid));
+    const candKeys = Object.keys(localStorage).filter(k=>k.startsWith(`room_${roomId}_candidate_`) && !k.includes(myUid));
+
+    // 收到Offer，我作为应答方
+    if(offerKey && !peerConn.remoteDescription){
+      isInitiator = false;
+      await createPeerConnection();
+      const offer = JSON.parse(localStorage.getItem(offerKey));
+      await peerConn.setRemoteDescription(new RTCSessionDescription(offer));
+      const answer = await peerConn.createAnswer();
+      await peerConn.setLocalDescription(answer);
+      localStorage.setItem(`room_${roomId}_answer_${myUid}`, JSON.stringify(answer));
+      addTip('收到对方邀约，已自动应答');
+    }
+
+    // 收到Answer，我方是发起方
+    if(answerKey && peerConn && !peerConn.remoteDescription?.type){
+      const answer = JSON.parse(localStorage.getItem(answerKey));
+      await peerConn.setRemoteDescription(new RTCSessionDescription(answer));
+    }
+
+    // 补充ICE候选
+    for(let k of candKeys){
+      const cand = JSON.parse(localStorage.getItem(k));
+      peerConn?.addIceCandidate(new RTCIceCandidate(cand)).catch(()=>{});
+    }
+  }, 1200)
+}
+
+// 发送消息
+function sendMessage(text){
+  if(!dataChannel || dataChannel.readyState !== 'open'){
+    alert('尚未连接对方，无法发送');
+    return;
+  }
+  const payload = JSON.stringify({
+    uid: myUid,
+    nick: myName,
+    text: text
+  });
+  dataChannel.send(payload);
+  addMsg(text, true);
+  document.getElementById('msgInput').value = '';
+}
+
+// 按钮事件
+document.getElementById('sendBtn').onclick = ()=>{
+  const val = document.getElementById('msgInput').value.trim();
+  if(val) sendMessage(val);
+}
+document.getElementById('msgInput').onkeydown = e=>{
+  if(e.key === 'Enter') sendMessage(e.target.value.trim());
+}
+document.getElementById('copyLink').onclick = async ()=>{
+  const link = location.origin + location.pathname + location.hash;
+  await navigator.clipboard.writeText(link);
+  alert('房间链接已复制');
+}
+document.getElementById('newRoom').onclick = ()=>{
+  roomId = randomId(16);
+  setRoomId(roomId);
+  location.reload();
+}
+
+// 启动流程
+(async function init(){
+  isInitiator = !getRoomId();
+  await createPeerConnection();
+  startSignalPoll();
+})();
+</script>
+</body>
+</html>
