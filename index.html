@@ -1,0 +1,825 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>认识 Web 3 —— 互联网的下一个时代</title>
+    <style>
+        :root {
+            --bg: #050510;
+            --bg-card: rgba(18, 18, 42, 0.6);
+            --bg-card-hover: rgba(26, 26, 62, 0.8);
+            --text: #e8e8fa;
+            --text-secondary: #b0b0d0;
+            --accent: #8b5cf6;
+            --accent-2: #6366f1;
+            --accent-3: #a78bfa;
+            --cyan: #22d3ee;
+            --gradient-1: linear-gradient(135deg, #8b5cf6 0%, #6366f1 100%);
+            --gradient-2: linear-gradient(135deg, #6366f1 0%, #4f46e5 100%);
+            --border: rgba(139, 92, 246, 0.25);
+            --border-light: rgba(255, 255, 255, 0.06);
+            --shadow: 0 8px 32px rgba(99, 102, 241, 0.15);
+            --shadow-lg: 0 20px 50px rgba(99, 102, 241, 0.25);
+            --radius: 20px;
+            --radius-sm: 12px;
+            --transition: 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+            --max-width: 1100px;
+            --font-xs: clamp(0.75rem, 1.5vw, 0.85rem);
+            --font-sm: clamp(0.85rem, 1.7vw, 0.95rem);
+            --font-base: clamp(0.95rem, 2vw, 1.05rem);
+            --font-md: clamp(1.1rem, 2.3vw, 1.25rem);
+            --font-lg: clamp(1.4rem, 3vw, 1.75rem);
+            --font-xl: clamp(1.8rem, 4.5vw, 2.6rem);
+            --font-xxl: clamp(2.2rem, 6vw, 3.5rem);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        html {
+            scroll-behavior: smooth;
+            -webkit-font-smoothing: antialiased;
+            font-size: 16px;
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Microsoft YaHei', sans-serif;
+            color: var(--text);
+            line-height: 1.7;
+            min-height: 100vh;
+            overflow-x: hidden;
+            position: relative;
+            background-image: url("bg-whale.png");
+            background-size: cover;
+            background-position: center;
+            background-attachment: fixed;
+        }
+        body::before {
+            content: "";
+            position: fixed;
+            inset: 0;
+            background-color: rgba(4,4,16,0.65);
+            z-index: 0;
+        }
+
+        /* 动态网格背景 */
+        .tech-grid {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 0;
+            background-image:
+                linear-gradient(rgba(139, 92, 246, 0.04) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(139, 92, 246, 0.04) 1px, transparent 1px);
+            background-size: 50px 50px;
+            animation: gridShift 25s linear infinite;
+        }
+        @keyframes gridShift {
+            0% {
+                transform: translate(0, 0);
+            }
+            100% {
+                transform: translate(50px, 50px);
+            }
+        }
+
+        /* 扫描线 */
+        .scan-line {
+            position: fixed;
+            top: -5%;
+            left: -5%;
+            width: 110%;
+            height: 2px;
+            background: linear-gradient(90deg, transparent, rgba(34, 211, 238, 0.4), rgba(139, 92, 246, 0.6), rgba(34, 211, 238, 0.4), transparent);
+            z-index: 0;
+            pointer-events: none;
+            animation: scanDown 7s linear infinite;
+            filter: blur(2px);
+            opacity: 0.7;
+        }
+        @keyframes scanDown {
+            0% {
+                top: -5%;
+            }
+            100% {
+                top: 105%;
+            }
+        }
+
+        /* 粒子画布 */
+        #particles-canvas {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 0;
+            pointer-events: none;
+        }
+
+        /* 装饰光球 */
+        .bg-orb {
+            position: fixed;
+            border-radius: 50%;
+            pointer-events: none;
+            z-index: 0;
+            filter: blur(100px);
+            opacity: 0.3;
+            animation: orbFloat 15s ease-in-out infinite;
+        }
+        .bg-orb.orb-1 {
+            width: 400px;
+            height: 400px;
+            background: rgba(139, 92, 246, 0.2);
+            top: -10%;
+            left: -5%;
+        }
+        .bg-orb.orb-2 {
+            width: 350px;
+            height: 350px;
+            background: rgba(34, 211, 238, 0.15);
+            bottom: -10%;
+            right: -5%;
+            animation-delay: -5s;
+        }
+        .bg-orb.orb-3 {
+            width: 250px;
+            height: 250px;
+            background: rgba(99, 102, 241, 0.15);
+            top: 50%;
+            left: 60%;
+            animation-delay: -10s;
+        }
+        @keyframes orbFloat {
+            0%,
+            100% {
+                transform: translate(0, 0) scale(1);
+            }
+            33% {
+                transform: translate(3vw, -2vh) scale(1.1);
+            }
+            66% {
+                transform: translate(-2vw, 4vh) scale(0.9);
+            }
+        }
+
+        /* 主容器 */
+        .container {
+            position: relative;
+            z-index: 2;
+            max-width: var(--max-width);
+            margin: 0 auto;
+            padding: 0 clamp(20px, 4vw, 40px);
+            backdrop-filter: blur(2px);
+        }
+
+        /* Hero */
+        .hero {
+            text-align: center;
+            padding: clamp(80px, 14vh, 120px) 0 clamp(50px, 10vh, 80px);
+            position: relative;
+        }
+        .hero-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            background: rgba(139, 92, 246, 0.12);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(139, 92, 246, 0.3);
+            border-radius: 50px;
+            padding: 8px 22px;
+            font-size: var(--font-xs);
+            color: var(--accent-3);
+            letter-spacing: 0.06em;
+            margin-bottom: 28px;
+            animation: fadeInUp 0.7s ease-out;
+            box-shadow: 0 0 20px rgba(139, 92, 246, 0.1);
+        }
+        .hero-badge .dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: #a78bfa;
+            box-shadow: 0 0 12px #a78bfa;
+            animation: pulse-dot 2s ease-in-out infinite;
+        }
+        @keyframes pulse-dot {
+            0%,
+            100% {
+                transform: scale(1);
+                opacity: 0.9;
+            }
+            50% {
+                transform: scale(1.8);
+                opacity: 0.5;
+            }
+        }
+        @keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translateY(30px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        .hero h1 {
+            font-size: var(--font-xxl);
+            font-weight: 800;
+            letter-spacing: -0.03em;
+            line-height: 1.15;
+            margin-bottom: 20px;
+            background: linear-gradient(135deg, #f0e8ff 0%, #c4b5fd 40%, #8b5cf6 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            filter: drop-shadow(0 4px 15px rgba(139, 92, 246, 0.4));
+            animation: fadeInUp 0.7s ease-out 0.1s both;
+        }
+        .hero .subtitle {
+            font-size: var(--font-md);
+            color: var(--text-secondary);
+            max-width: 600px;
+            margin: 0 auto 36px;
+            line-height: 1.7;
+            animation: fadeInUp 0.7s ease-out 0.2s both;
+        }
+        .hero .highlight-box {
+            display: inline-block;
+            background: rgba(18, 18, 42, 0.5);
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(139, 92, 246, 0.35);
+            border-radius: 60px;
+            padding: 16px 32px;
+            font-size: var(--font-sm);
+            color: #d4c8f0;
+            max-width: 500px;
+            animation: fadeInUp 0.7s ease-out 0.3s both;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+            transition: all 0.3s ease;
+        }
+        .hero .highlight-box:hover {
+            border-color: var(--accent-3);
+            box-shadow: 0 0 30px rgba(139, 92, 246, 0.25);
+        }
+        .highlight-box strong {
+            color: #c4b5fd;
+            font-weight: 700;
+        }
+
+        /* 通用区块 */
+        .section {
+            padding: clamp(40px, 7vh, 70px) 0;
+            position: relative;
+        }
+        .section-label {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            font-size: var(--font-xs);
+            text-transform: uppercase;
+            letter-spacing: 0.12em;
+            color: var(--accent-3);
+            margin-bottom: 12px;
+            font-weight: 600;
+            background: rgba(139, 92, 246, 0.1);
+            padding: 4px 16px;
+            border-radius: 30px;
+            border: 1px solid rgba(139, 92, 246, 0.2);
+        }
+        .section-title {
+            font-size: var(--font-xl);
+            font-weight: 700;
+            letter-spacing: -0.02em;
+            margin-bottom: 16px;
+            color: #f0eaff;
+            text-shadow: 0 2px 10px rgba(139, 92, 246, 0.3);
+        }
+        .section-desc {
+            font-size: var(--font-base);
+            color: var(--text-secondary);
+            max-width: 600px;
+            margin-bottom: 40px;
+            line-height: 1.7;
+        }
+
+        /* 时间线卡片 */
+        .timeline-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 20px;
+        }
+        .timeline-card {
+            background: var(--bg-card);
+            backdrop-filter: blur(16px);
+            border: 1px solid var(--border-light);
+            border-radius: var(--radius);
+            padding: 28px 24px;
+            position: relative;
+            transition: var(--transition);
+            cursor: default;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+        }
+        .timeline-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 4px;
+            background: var(--gradient-1);
+            opacity: 0.8;
+            transition: var(--transition);
+        }
+        .timeline-card.card-web1::before {
+            background: linear-gradient(90deg, #f59e0b, #fbbf24);
+        }
+        .timeline-card.card-web2::before {
+            background: linear-gradient(90deg, #3b82f6, #60a5fa);
+        }
+        .timeline-card.card-web3::before {
+            background: linear-gradient(90deg, #8b5cf6, #22d3ee);
+        }
+        .timeline-card::after {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 200%;
+            height: 100%;
+            background: linear-gradient(120deg, transparent, rgba(255, 255, 255, 0.03), transparent);
+            transition: 0.6s;
+        }
+        .timeline-card:hover {
+            transform: translateY(-8px);
+            border-color: rgba(139, 92, 246, 0.5);
+            box-shadow: 0 25px 50px rgba(99, 102, 241, 0.3);
+        }
+        .timeline-card:hover::after {
+            left: 100%;
+        }
+        .timeline-card .card-icon {
+            font-size: 2.8rem;
+            margin-bottom: 4px;
+        }
+        .card-era {
+            font-size: var(--font-xs);
+            font-weight: 700;
+            letter-spacing: 0.05em;
+            opacity: 0.8;
+        }
+        .card-title {
+            font-size: var(--font-md);
+            font-weight: 700;
+            color: #f0eaff;
+        }
+        .card-desc {
+            font-size: var(--font-sm);
+            color: var(--text-secondary);
+            line-height: 1.65;
+        }
+
+        /* 核心理念卡片 */
+        .cards-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 20px;
+        }
+        .info-card {
+            background: var(--bg-card);
+            backdrop-filter: blur(16px);
+            border: 1px solid var(--border-light);
+            border-radius: var(--radius);
+            padding: 28px 24px;
+            transition: var(--transition);
+            cursor: default;
+            position: relative;
+            overflow: hidden;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+        }
+        .info-card:hover {
+            transform: translateY(-6px);
+            border-color: rgba(139, 92, 246, 0.5);
+            box-shadow: 0 20px 45px rgba(99, 102, 241, 0.3);
+        }
+        .info-card::before {
+            content: '';
+            position: absolute;
+            top: -50%;
+            right: -50%;
+            width: 200px;
+            height: 200px;
+            background: radial-gradient(circle, rgba(139, 92, 246, 0.1) 0%, transparent 70%);
+            transition: 0.5s;
+        }
+        .info-card:hover::before {
+            top: -30%;
+            right: -30%;
+        }
+        .info-card .card-icon-lg {
+            font-size: 2.6rem;
+            margin-bottom: 14px;
+            display: block;
+        }
+        .info-card h3 {
+            font-size: var(--font-md);
+            font-weight: 700;
+            margin-bottom: 8px;
+            color: #f0eaff;
+        }
+        .info-card p {
+            font-size: var(--font-sm);
+            color: var(--text-secondary);
+            line-height: 1.7;
+        }
+        .info-card .tag {
+            display: inline-block;
+            font-size: var(--font-xs);
+            background: rgba(139, 92, 246, 0.15);
+            color: #c4b5fd;
+            padding: 5px 14px;
+            border-radius: 30px;
+            margin-top: 14px;
+            font-weight: 500;
+            border: 1px solid rgba(139, 92, 246, 0.2);
+        }
+
+        /* 对比表格 */
+        .compare-table-wrap {
+            overflow-x: auto;
+            border-radius: var(--radius);
+            border: 1px solid rgba(139, 92, 246, 0.2);
+            background: rgba(18, 18, 42, 0.4);
+            backdrop-filter: blur(16px);
+        }
+        .compare-table {
+            width: 100%;
+            border-collapse: collapse;
+            min-width: 600px;
+            font-size: var(--font-sm);
+        }
+        .compare-table thead th {
+            background: rgba(139, 92, 246, 0.15);
+            padding: 16px 18px;
+            text-align: left;
+            font-weight: 700;
+            color: #e0d8f8;
+            letter-spacing: 0.04em;
+            border-bottom: 2px solid rgba(139, 92, 246, 0.3);
+        }
+        .compare-table tbody td {
+            padding: 14px 18px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+            color: var(--text-secondary);
+            vertical-align: middle;
+        }
+        .compare-table tbody tr:hover td {
+            background: rgba(139, 92, 246, 0.06);
+        }
+        .compare-table .col-label {
+            font-weight: 600;
+            color: #d4c8f0;
+        }
+        .compare-table .highlight-cell {
+            color: #22d3ee;
+            font-weight: 600;
+            text-shadow: 0 0 8px rgba(34, 211, 238, 0.3);
+        }
+
+        /* 比喻区块 */
+        .metaphor-block {
+            background: rgba(18, 18, 42, 0.5);
+            backdrop-filter: blur(20px);
+            border: 1px solid rgba(139, 92, 246, 0.3);
+            border-radius: var(--radius);
+            padding: 32px 30px;
+            position: relative;
+            overflow: hidden;
+            box-shadow: 0 15px 40px rgba(0, 0, 0, 0.4);
+        }
+        .metaphor-block::before {
+            content: '';
+            position: absolute;
+            top: -20px;
+            right: -20px;
+            width: 120px;
+            height: 120px;
+            background: radial-gradient(circle, rgba(34, 211, 238, 0.15) 0%, transparent 70%);
+        }
+        .metaphor-block h3 {
+            font-size: var(--font-md);
+            font-weight: 700;
+            margin-bottom: 12px;
+            color: #f0eaff;
+            position: relative;
+            z-index: 1;
+        }
+        .metaphor-block p {
+            font-size: var(--font-base);
+            color: var(--text-secondary);
+            line-height: 1.8;
+            position: relative;
+            z-index: 1;
+        }
+        .highlight-word {
+            color: #22d3ee;
+            font-weight: 700;
+        }
+
+        /* 要点列表 */
+        .feature-list {
+            list-style: none;
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 16px;
+        }
+        .feature-list li {
+            background: var(--bg-card);
+            backdrop-filter: blur(12px);
+            border: 1px solid var(--border-light);
+            border-radius: var(--radius-sm);
+            padding: 18px 20px;
+            font-size: var(--font-sm);
+            color: var(--text-secondary);
+            transition: var(--transition);
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            line-height: 1.6;
+            box-shadow: 0 5px 20px rgba(0, 0, 0, 0.2);
+        }
+        .feature-list li:hover {
+            border-color: rgba(139, 92, 246, 0.4);
+            transform: translateX(4px);
+        }
+        .feat-icon {
+            font-size: 1.5rem;
+            flex-shrink: 0;
+        }
+
+        /* Footer */
+        .footer-cta {
+            text-align: center;
+            padding: clamp(50px, 10vh, 80px) 0 clamp(30px, 6vh, 50px);
+        }
+        .big-quote {
+            font-size: var(--font-lg);
+            font-weight: 700;
+            color: #f0eaff;
+            margin-bottom: 12px;
+        }
+        .big-quote-sub {
+            font-size: var(--font-base);
+            color: var(--text-secondary);
+            max-width: 500px;
+            margin: 0 auto;
+        }
+        .footer-line {
+            height: 1px;
+            background: linear-gradient(90deg, transparent, rgba(139, 92, 246, 0.5), transparent);
+            margin: 24px 0;
+        }
+        .footer-note {
+            font-size: var(--font-xs);
+            color: rgba(255, 255, 255, 0.3);
+            text-align: center;
+            padding-bottom: 40px;
+        }
+
+        /* 响应式 */
+        @media (max-width: 768px) {
+            .timeline-grid {
+                grid-template-columns: 1fr;
+            }
+            .cards-grid {
+                grid-template-columns: 1fr;
+            }
+            .feature-list {
+                grid-template-columns: 1fr;
+            }
+            .compare-table {
+                min-width: 500px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="tech-grid"></div>
+    <div class="scan-line"></div>
+    <canvas id="particles-canvas"></canvas>
+    <div class="bg-orb orb-1"></div>
+    <div class="bg-orb orb-2"></div>
+    <div class="bg-orb orb-3"></div>
+
+    <div class="container">
+        <header class="hero">
+            <div class="hero-badge">
+                <span class="dot"></span> 互联网的第三次浪潮
+            </div>
+            <h1>Web 3：把互联网<br>还给每一个人</h1>
+            <p class="subtitle">Web 3 不是某个公司的产品，而是一场关于「数据主权」的变革——让用户在数字世界里，真正拥有自己的身份、资产和话语权。</p>
+            <div class="highlight-box">
+                💡 <strong>一句话理解 Web 3：</strong>在 Web 2 时代，你是平台的产品；在 Web 3 时代，你是自己的主人。
+            </div>
+        </header>
+
+        <section class="section">
+            <span class="section-label">📜 历史演进</span>
+            <h2 class="section-title">从「只读」到「读写」再到「拥有」</h2>
+            <p class="section-desc">互联网每十年左右经历一次重大范式转移，Web 3 正是这场接力赛的最新一棒。</p>
+            <div class="timeline-grid">
+                <div class="timeline-card card-web1">
+                    <span class="card-icon">📖</span>
+                    <span class="card-era">1990s – 2005</span>
+                    <span class="card-title">Web 1.0 · 只读互联网</span>
+                    <p class="card-desc">静态网页为主，用户只能浏览信息，像翻阅一本电子杂志。网站发布内容，你来阅读——互动几乎为零。</p>
+                </div>
+                <div class="timeline-card card-web2">
+                    <span class="card-icon">💬</span>
+                    <span class="card-era">2005 – 至今</span>
+                    <span class="card-title">Web 2.0 · 读写互动</span>
+                    <p class="card-desc">社交媒体、UGC 内容爆发。你可以发帖、评论、创作，但平台掌控数据和流量——你贡献内容，平台拿走价值。</p>
+                </div>
+                <div class="timeline-card card-web3">
+                    <span class="card-icon">🔐</span>
+                    <span class="card-era">正在到来</span>
+                    <span class="card-title">Web 3.0 · 拥有主权</span>
+                    <p class="card-desc">基于区块链技术，用户拥有数据所有权。身份、资产、创作成果真正属于自己，无需中介背书，价值回归参与者。</p>
+                </div>
+            </div>
+        </section>
+
+        <section class="section">
+            <span class="section-label">🧠 核心理念</span>
+            <h2 class="section-title">Web 3 试图解决什么问题？</h2>
+            <p class="section-desc">它的出现并非偶然，而是对 Web 2 时代「中心化垄断」的直接回应。</p>
+            <div class="cards-grid">
+                <div class="info-card">
+                    <span class="card-icon-lg">🏠</span>
+                    <h3>数据自主权</h3>
+                    <p>在 Web 2 中，你的社交数据、行为画像都存储在巨头的服务器上。Web 3 让数据回归用户，由你决定谁可以访问、如何使用。</p>
+                    <span class="tag">自托管身份</span>
+                </div>
+                <div class="info-card">
+                    <span class="card-icon-lg">🤝</span>
+                    <h3>去信任化协作</h3>
+                    <p>无需依赖银行、平台或第三方中介。代码即规则，智能合约自动执行约定——信任从「人」转移到「数学」上。</p>
+                    <span class="tag">智能合约</span>
+                </div>
+                <div class="info-card">
+                    <span class="card-icon-lg">🎨</span>
+                    <h3>价值归创造者</h3>
+                    <p>你在平台上创作的内容，价值理应归你。Web 3 通过代币经济让创作者直接获得回报，而非被平台抽走大头。</p>
+                    <span class="tag">创作者经济</span>
+                </div>
+                <div class="info-card">
+                    <span class="card-icon-lg">🌐</span>
+                    <h3>开放与互操作</h3>
+                    <p>你的身份和资产可以在不同应用间自由流转，不再被锁在某个封闭生态里。一个账号走遍整个 Web 3 世界。</p>
+                    <span class="tag">可组合性</span>
+                </div>
+            </div>
+        </section>
+
+        <section class="section">
+            <span class="section-label">⚖️ 直观对比</span>
+            <h2 class="section-title">Web 2 vs Web 3，差别在哪？</h2>
+            <p class="section-desc">下面这张表能帮你快速看清两者在关键维度上的不同。</p>
+            <div class="compare-table-wrap">
+                <table class="compare-table">
+                    <thead><tr><th>维度</th><th>Web 2（现在）</th><th>Web 3（未来）</th></tr></thead>
+                    <tbody>
+                        <tr><td class="col-label">数据归属</td><td>平台所有，用户仅授权使用</td><td class="highlight-cell">用户所有，自主掌控</td></tr>
+                        <tr><td class="col-label">身份体系</td><td>每站注册，账号碎片化</td><td class="highlight-cell">一个去中心化身份通全网</td></tr>
+                        <tr><td class="col-label">价值分配</td><td>平台拿大头，创作者分小头</td><td class="highlight-cell">创作者直接获利，社区共治</td></tr>
+                        <tr><td class="col-label">信任来源</td><td>依赖公司品牌和声誉</td><td class="highlight-cell">依赖代码和数学证明</td></tr>
+                        <tr><td class="col-label">治理方式</td><td>公司中心决策</td><td class="highlight-cell">社区投票共治（DAO）</td></tr>
+                        <tr><td class="col-label">互操作性</td><td>封闭花园，数据壁垒</td><td class="highlight-cell">开放协议，自由流动</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </section>
+
+        <section class="section">
+            <span class="section-label">🏘️ 一个比喻</span>
+            <h2 class="section-title">用「租房 vs 买房」来理解</h2>
+            <div class="metaphor-block">
+                <h3>🏢 Web 2 像是在「租公寓」</h3>
+                <p>你住在别人的房子里，装修得再好、住得再久，房子终究是房东的。房东（平台）可以随时涨租、改规则，甚至请你搬走。你在平台上积累的粉丝和数据，本质上都不属于你——<span class="highlight-word">你只是一个租客</span>。</p>
+                <p style="margin-top: 18px;"><strong>🏡 Web 3 则像是「拥有了自己的房产」</strong>——产权在区块链上登记，谁也改不了。你可以自由装修（自定义身份）、出租（授权数据使用）、甚至卖掉（转移资产），<span class="highlight-word">不需要经过任何中介的同意</span>。你的数字资产和你牢牢绑定，无论哪个平台都无法单方面剥夺。</p>
+            </div>
+        </section>
+
+        <section class="section">
+            <span class="section-label">✅ 一句话总结</span>
+            <h2 class="section-title">Web 3 带给我们的关键改变</h2>
+            <ul class="feature-list">
+                <li><span class="feat-icon">🔑</span><span><strong>你拥有自己的身份，</strong>而非从平台借用一个账号。</span></li>
+                <li><span class="feat-icon">💰</span><span><strong>你掌握自己的资产，</strong>无需银行或支付公司许可。</span></li>
+                <li><span class="feat-icon">📝</span><span><strong>你创作的内容归你，</strong>价值直接回流到创作者手中。</span></li>
+                <li><span class="feat-icon">🗳️</span><span><strong>你有权参与治理，</strong>社区的方向由成员共同投票决定。</span></li>
+                <li><span class="feat-icon">🔗</span><span><strong>应用之间开放互联，</strong>数据和资产可以自由流转。</span></li>
+                <li><span class="feat-icon">🛡️</span><span><strong>信任建立在代码上，</strong>规则透明、不可篡改、自动执行。</span></li>
+            </ul>
+        </section>
+
+        <div class="footer-cta">
+            <p class="big-quote">Web 3 不是炒作，而是一场关于「数字人权」的回归。</p>
+            <p class="big-quote-sub">它让互联网回到最初的愿景——开放、自由、属于每一个人。</p>
+        </div>
+        <div class="footer-line"></div>
+        <p class="footer-note">🌍 互联网的下一个时代，正在悄然到来。</p>
+    </div>
+
+    <script>
+        (function() {
+            const canvas = document.getElementById('particles-canvas');
+            const ctx = canvas.getContext('2d');
+            let width, height, particles = [];
+            const particleCount = 70;
+            const maxDistance = 140;
+
+            function resize() {
+                width = window.innerWidth;
+                height = window.innerHeight;
+                canvas.width = width;
+                canvas.height = height;
+            }
+            class Particle {
+                constructor() {
+                    this.reset();
+                }
+                reset() {
+                    this.x = Math.random() * width;
+                    this.y = Math.random() * height;
+                    this.vx = (Math.random() - 0.5) * 0.5;
+                    this.vy = (Math.random() - 0.5) * 0.5;
+                    this.radius = Math.random() * 2.2 + 1;
+                }
+                update() {
+                    this.x += this.vx;
+                    this.y += this.vy;
+                    if (this.x < 0 || this.x > width) this.vx *= -1;
+                    if (this.y < 0 || this.y > height) this.vy *= -1;
+                }
+                draw(ctx) {
+                    ctx.beginPath();
+                    ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2);
+                    ctx.fillStyle = 'rgba(167, 139, 250, 0.8)';
+                    ctx.fill();
+                    ctx.beginPath();
+                    ctx.arc(this.x, this.y, this.radius * 2.5, 0, Math.PI * 2);
+                    ctx.fillStyle = 'rgba(34, 211, 238, 0.15)';
+                    ctx.fill();
+                }
+            }
+            function connect() {
+                for (let i = 0; i < particles.length; i++) {
+                    for (let j = i + 1; j < particles.length; j++) {
+                        const dx = particles[i].x - particles[j].x;
+                        const dy = particles[i].y - particles[j].y;
+                        const dist = Math.sqrt(dx * dx + dy * dy);
+                        if (dist < maxDistance) {
+                            ctx.beginPath();
+                            ctx.moveTo(particles[i].x, particles[i].y);
+                            ctx.lineTo(particles[j].x, particles[j].y);
+                            ctx.strokeStyle = `rgba(139, 92, 246, ${0.25 * (1 - dist / maxDistance)})`;
+                            ctx.lineWidth = 0.7;
+                            ctx.stroke();
+                        }
+                    }
+                }
+            }
+            function animate() {
+                ctx.clearRect(0, 0, width, height);
+                particles.forEach(p => { p.update();
+                    p.draw(ctx); });
+                connect();
+                requestAnimationFrame(animate);
+            }
+            function init() {
+                resize();
+                particles = Array.from({ length: particleCount }, () => new Particle());
+            }
+            init();
+            animate();
+            window.addEventListener('resize', () => {
+                resize();
+                particles = Array.from({ length: particleCount }, () => new Particle());
+            });
+        })();
+    </script>
+</body>
+</html>
